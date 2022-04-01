@@ -1,0 +1,31 @@
+title: Knop
+fields:
+  -
+    handle: button
+    field:
+      types:
+        - asset
+        - entry
+        - custom
+        - email
+        - tel
+        - url
+      newWindow: true
+      text: true
+      aria: false
+      append: false
+      containers:
+        - docs
+      display: Knop
+      type: link_it
+      icon: external-link
+      listable: hidden
+      instructions_position: above
+      read_only: false
+      localizable: true
+      collections:
+        - vacancies
+        - pages
+        - products
+        - cases
+        - news

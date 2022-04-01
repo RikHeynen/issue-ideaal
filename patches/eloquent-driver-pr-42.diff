@@ -1,0 +1,4263 @@
+diff --git a/.gitignore b/.gitignore
+index e96516b..2d046d1 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,3 +1,4 @@
+ composer.lock
+ vendor
+ .phpunit.result.cache
++.php_cs.cache
+diff --git a/README.md b/README.md
+index fdeb4db..313d0d8 100644
+--- a/README.md
++++ b/README.md
+@@ -2,8 +2,6 @@
+
+ This package provides support for storing your Statamic data in a database rather than the filesystem.
+
+-This driver currently supports entries but not taxonomies, navigations, globals, or form submissions. We'll be working on those in the future.
+-
+ ## Installation
+
+ Install using Composer:
+diff --git a/config/eloquent-driver.php b/config/eloquent-driver.php
+index 98b04a2..65a0b99 100644
+--- a/config/eloquent-driver.php
++++ b/config/eloquent-driver.php
+@@ -1,9 +1,62 @@
+ <?php
+
+ return [
++
++    'connection' => env('STATAMIC_ELOQUENT_CONNECTION', ''),
++    'table_prefix' => env('STATAMIC_ELOQUENT_PREFIX', ''),
++
++    'assets' => [
++        'driver' => 'eloquent',
++        'container-model' => \Statamic\Eloquent\Assets\AssetContainerModel::class,
++        'model' => \Statamic\Eloquent\Assets\AssetModel::class,
++    ],
++
++    'blueprints' => [
++        'driver' => 'eloquent',
++        'blueprint-model' => \Statamic\Eloquent\Fields\BlueprintModel::class,
++        'fieldsets-model' => \Statamic\Eloquent\Fields\FieldsetModel::class,
++    ],
++
++    'collections' => [
++        'driver' => 'eloquent',
++        'model' => \Statamic\Eloquent\Collections\CollectionModel::class,
++        'tree' => \Statamic\Eloquent\Structures\CollectionTree::class,
++        'tree-model' => \Statamic\Eloquent\Structures\TreeModel::class,
++    ],
+
+     'entries' => [
++        'driver' => 'eloquent',
+         'model' => \Statamic\Eloquent\Entries\EntryModel::class,
++        'entry' => \Statamic\Eloquent\Entries\Entry::class,
++    ],
++
++    'forms' => [
++        'driver' => 'eloquent',
++        'model' =>  \Statamic\Eloquent\Forms\Form::class,
++        'submissions-model' =>  \Statamic\Eloquent\Forms\FormSubmission::class,
++    ],
++
++    'global-sets' => [
++        'driver' => 'eloquent',
++        'model' =>  \Statamic\Eloquent\Globals\GlobalSetModel::class,
++        'variables-model' =>  \Statamic\Eloquent\Globals\VariablesModel::class,
+     ],
+
++    'navigations' => [
++        'driver' => 'eloquent',
++        'model' =>  \Statamic\Eloquent\Structures\NavModel::class,
++        'tree' => \Statamic\Eloquent\Structures\NavTree::class,
++        'tree-model' =>  \Statamic\Eloquent\Structures\TreeModel::class,
++    ],
++
++    'revisions' => [
++        'driver' => 'eloquent',
++        'model' =>  \Statamic\Eloquent\Revisions\RevisionModel::class,
++    ],
++
++    'taxonomies' => [
++        'driver' => 'eloquent',
++        'model' =>  \Statamic\Eloquent\Taxonomies\TaxonomyModel::class,
++        'term-model' =>  \Statamic\Eloquent\Taxonomies\TermModel::class,
++    ],
+ ];
+diff --git a/database/migrations/2021_05_18_160811_create_taxonomies_table.php b/database/migrations/2021_05_18_160811_create_taxonomies_table.php
+new file mode 100644
+index 0000000..c449ae5
+--- /dev/null
++++ b/database/migrations/2021_05_18_160811_create_taxonomies_table.php
+@@ -0,0 +1,35 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateTaxonomiesTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'taxonomies', function (Blueprint $table) {
++            $table->increments('id');
++            $table->string('handle');
++            $table->string('title');
++            $table->json('sites')->nullable();
++            $table->json('settings')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'taxonomies');
++    }
++}
+diff --git a/database/migrations/2021_05_19_082853_create_terms_table.php b/database/migrations/2021_05_19_082853_create_terms_table.php
+new file mode 100644
+index 0000000..9fbdadc
+--- /dev/null
++++ b/database/migrations/2021_05_19_082853_create_terms_table.php
+@@ -0,0 +1,36 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateTermsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'taxonomy_terms', function (Blueprint $table) {
++            $table->id();
++            $table->string('site');
++            $table->string('slug');
++            $table->string('uri')->nullable();
++            $table->string('taxonomy');
++            $table->json('data');
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'taxonomy_terms');
++    }
++}
+diff --git a/database/migrations/2021_05_19_122354_create_globals_table.php b/database/migrations/2021_05_19_122354_create_globals_table.php
+new file mode 100644
+index 0000000..ca1b57e
+--- /dev/null
++++ b/database/migrations/2021_05_19_122354_create_globals_table.php
+@@ -0,0 +1,34 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateGlobalsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'global_sets', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->string('title');
++            $table->json('localizations');
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'global_sets');
++    }
++}
+diff --git a/database/migrations/2021_05_19_143631_create_navigations_table.php b/database/migrations/2021_05_19_143631_create_navigations_table.php
+new file mode 100644
+index 0000000..2a90566
+--- /dev/null
++++ b/database/migrations/2021_05_19_143631_create_navigations_table.php
+@@ -0,0 +1,37 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateNavigationsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'navigations', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->string('title');
++            $table->json('collections')->nullable();
++            $table->integer('maxDepth')->nullable();
++            $table->boolean('expectsRoot')->default(false);
++            $table->string('initialPath')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'navigations');
++    }
++}
+diff --git a/database/migrations/2021_05_27_082335_create_navigation_trees_table.php b/database/migrations/2021_05_27_082335_create_navigation_trees_table.php
+new file mode 100644
+index 0000000..2a13348
+--- /dev/null
++++ b/database/migrations/2021_05_27_082335_create_navigation_trees_table.php
+@@ -0,0 +1,36 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateNavigationTreesTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'trees', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->string('type');
++            $table->string('initialPath')->nullable();
++            $table->string('locale')->nullable();
++            $table->json('tree')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'trees');
++    }
++}
+diff --git a/database/migrations/2021_05_28_114212_create_collections_table.php b/database/migrations/2021_05_28_114212_create_collections_table.php
+new file mode 100644
+index 0000000..26ca423
+--- /dev/null
++++ b/database/migrations/2021_05_28_114212_create_collections_table.php
+@@ -0,0 +1,49 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateCollectionsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'collections', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->string('title');
++            $table->json('routes')->nullable();
++            $table->boolean('dated')->default(false);
++            $table->string('past_date_behavior')->nullable();
++            $table->string('future_date_behavior')->nullable();
++            $table->boolean('default_publish_state')->default(true);
++            $table->boolean('ampable')->default(false);
++            $table->json('sites')->nullable();
++            $table->string('template')->nullable();
++            $table->string('layout')->nullable();
++            $table->string('sort_dir')->nullable();
++            $table->string('sort_field')->nullable();
++            $table->string('mount')->nullable();
++            $table->json('taxonomies')->nullable();
++            $table->boolean('revisions')->default(false);
++            $table->json('inject')->nullable();
++            $table->json('structure')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'collections');
++    }
++}
+diff --git a/database/migrations/2021_09_26_213111_create_blueprints_table.php b/database/migrations/2021_09_26_213111_create_blueprints_table.php
+new file mode 100644
+index 0000000..49ab71d
+--- /dev/null
++++ b/database/migrations/2021_09_26_213111_create_blueprints_table.php
+@@ -0,0 +1,85 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\Schema;
++use Statamic\Eloquent\Database\Seeders\DefaultBlueprintSeeder;
++
++class CreateBlueprintsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'blueprints', function (Blueprint $table) {
++            $table->id();
++            $table->string('namespace')->nullable()->default(null);
++            $table->string('handle');
++            $table->json('data');
++            $table->timestamps();
++        });
++
++        $this->seedDefaultBlueprint();
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'blueprints');
++    }
++
++    public function seedDefaultBlueprint()
++    {
++        try {
++
++            $config = json_encode([
++                'fields'  => [
++                    [
++                        'field'  => [
++                            'type'        => 'markdown',
++                            'display'     => 'Content',
++                            'localizable' => true
++                        ],
++                        'handle' => 'content'
++                    ],
++                    [
++                        'field'  => [
++                            'type'        => 'users',
++                            'display'     => 'Author',
++                            'default'     => 'current',
++                            'localizable' => true,
++                            'max_items'   => 1
++                        ],
++                        'handle' => 'author'
++                    ],
++                    [
++                        'field'  => [
++                            'type'        => 'template',
++                            'display'     => 'Template',
++                            'localizable' => true
++                        ],
++                        'handle' => 'template'
++                    ],
++                ]
++            ]);
++
++        } catch (\JsonException $e) {
++            $config = '[]';
++        }
++
++        DB::table(config('statamic.eloquent-driver.table_prefix', '').'blueprints')->insert([
++            'namespace'  => null,
++            'handle'     => 'default',
++            'data'       => $config,
++            'created_at' => Carbon::now()
++        ]);
++    }
++}
+diff --git a/database/migrations/2021_09_26_214356_create_fieldsets_table.php b/database/migrations/2021_09_26_214356_create_fieldsets_table.php
+new file mode 100644
+index 0000000..0271404
+--- /dev/null
++++ b/database/migrations/2021_09_26_214356_create_fieldsets_table.php
+@@ -0,0 +1,33 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateFieldsetsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'fieldsets', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->json('data');
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'fieldsets');
++    }
++}
+diff --git a/database/migrations/2022_02_14_114212_change_collections_table.php b/database/migrations/2022_02_14_114212_change_collections_table.php
+new file mode 100644
+index 0000000..be8c5f6
+--- /dev/null
++++ b/database/migrations/2022_02_14_114212_change_collections_table.php
+@@ -0,0 +1,80 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Arr;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++
++class ChangeCollectionsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::table(config('statamic.eloquent-driver.table_prefix', '').'collections', function (Blueprint $table) {
++            $table->json('settings')->nullable();
++        });
++
++        DB::table(config('statamic.eloquent-driver.table_prefix', '').'collections')
++            ->orderBy('created_at')
++            ->each(function ($collection) {
++
++                DB::table(config('statamic.eloquent-driver.table_prefix', '').'collections')
++                    ->where('id', $collection->id)
++                    ->update([
++                        'settings' => json_encode([
++                            'routes' => json_decode($collection->routes ?? '[]'),
++                            'dated' => $collection->dated ?? null,
++                            'past_date_behavior' => $collection->past_date_behavior ?? null,
++                            'future_date_behavior' => $collection->future_date_behavior ?? null,
++                            'default_publish_state' => $collection->default_publish_state ?? null,
++                            'ampable' => $collection->ampable ?? null,
++                            'sites' => json_decode($collection->sites ?? '[]'),
++                            'template' => $collection->template ?? null,
++                            'layout' => $collection->layout ?? null,
++                            'sort_dir' => $collection->sort_dir ?? null,
++                            'sort_field' => $collection->sort_field ?? null,
++                            'mount' => $collection->mount ?? null,
++                            'taxonomies' => json_decode($collection->taxonomies ?? '[]'),
++                            'revisions' => $collection->revisions ?? null,
++                            'inject' => json_decode($collection->inject ?? '[]'),
++                            'structure' => json_decode($collection->structure ?? '[]'),
++                        ]),
++                    ]);
++            });
++
++        Schema::table(config('statamic.eloquent-driver.table_prefix', '').'collections', function (Blueprint $table) {
++            $table->dropColumn([
++                'routes',
++                'dated',
++                'past_date_behavior',
++                'future_date_behavior',
++                'default_publish_state',
++                'ampable',
++                'sites',
++                'template',
++                'layout',
++                'sort_dir',
++                'sort_field',
++                'mount',
++                'taxonomies',
++                'revisions',
++                'inject',
++                'structure',
++            ]);
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++    }
++}
+diff --git a/database/migrations/2022_02_15_114212_create_forms_table.php b/database/migrations/2022_02_15_114212_create_forms_table.php
+new file mode 100644
+index 0000000..e8ebd27
+--- /dev/null
++++ b/database/migrations/2022_02_15_114212_create_forms_table.php
+@@ -0,0 +1,34 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateFormsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'forms', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->string('title');
++            $table->json('settings')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'forms');
++    }
++}
+diff --git a/database/migrations/2022_02_16_114212_create_form_submissions_table.php b/database/migrations/2022_02_16_114212_create_form_submissions_table.php
+new file mode 100644
+index 0000000..f4b51e7
+--- /dev/null
++++ b/database/migrations/2022_02_16_114212_create_form_submissions_table.php
+@@ -0,0 +1,33 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateFormSubmissionsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'form_submissions', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('form_id')->constrained(config('statamic.eloquent-driver.table_prefix', '').'forms');
++            $table->json('data')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'form_submissions');
++    }
++}
+diff --git a/database/migrations/2022_02_25_114212_create_asset_containers_table.php b/database/migrations/2022_02_25_114212_create_asset_containers_table.php
+new file mode 100644
+index 0000000..f7b1dcb
+--- /dev/null
++++ b/database/migrations/2022_02_25_114212_create_asset_containers_table.php
+@@ -0,0 +1,35 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateAssetContainersTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'asset_containers', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->string('title');
++            $table->string('disk');
++            $table->json('settings')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'asset_containers');
++    }
++}
+diff --git a/database/migrations/2022_02_25_114212_create_asset_table.php b/database/migrations/2022_02_25_114212_create_asset_table.php
+new file mode 100644
+index 0000000..605cdd0
+--- /dev/null
++++ b/database/migrations/2022_02_25_114212_create_asset_table.php
+@@ -0,0 +1,33 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateAssetTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'assets_meta', function (Blueprint $table) {
++            $table->id();
++            $table->string('handle');
++            $table->json('data')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'assets_meta');
++    }
++}
+diff --git a/database/migrations/2022_02_28_114212_create_revisions_table.php b/database/migrations/2022_02_28_114212_create_revisions_table.php
+new file mode 100644
+index 0000000..06a69e1
+--- /dev/null
++++ b/database/migrations/2022_02_28_114212_create_revisions_table.php
+@@ -0,0 +1,36 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++class CreateRevisionsTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'revisions', function (Blueprint $table) {
++            $table->id();
++            $table->string('key');
++            $table->string('action');
++            $table->string('user');
++            $table->string('message')->nullable();
++            $table->json('attributes')->nullable();
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'revisions');
++    }
++}
+diff --git a/database/migrations/create_entries_table.php b/database/publish/create_entries_table.php
+similarity index 80%
+rename from database/migrations/create_entries_table.php
+rename to database/publish/create_entries_table.php
+index 451f0c9..b6298dc 100644
+--- a/database/migrations/create_entries_table.php
++++ b/database/publish/create_entries_table.php
+@@ -13,7 +13,7 @@ class CreateEntriesTable extends Migration
+      */
+     public function up()
+     {
+-        Schema::create('entries', function (Blueprint $table) {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'entries', function (Blueprint $table) {
+             $table->increments('id');
+             $table->string('site');
+             $table->unsignedInteger('origin_id')->nullable();
+@@ -35,6 +35,6 @@ public function up()
+      */
+     public function down()
+     {
+-        Schema::dropIfExists('entries');
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'entries');
+     }
+ }
+diff --git a/database/migrations/create_entries_table_with_string_ids.php b/database/publish/create_entries_table_with_string_ids.php
+similarity index 80%
+rename from database/migrations/create_entries_table_with_string_ids.php
+rename to database/publish/create_entries_table_with_string_ids.php
+index 57156fb..6a0bb81 100644
+--- a/database/migrations/create_entries_table_with_string_ids.php
++++ b/database/publish/create_entries_table_with_string_ids.php
+@@ -13,7 +13,7 @@ class CreateEntriesTableWithStringIds extends Migration
+      */
+     public function up()
+     {
+-        Schema::create('entries', function (Blueprint $table) {
++        Schema::create(config('statamic.eloquent-driver.table_prefix', '').'entries', function (Blueprint $table) {
+             $table->string('id');
+             $table->string('site');
+             $table->string('origin_id')->nullable();
+@@ -35,6 +35,6 @@ public function up()
+      */
+     public function down()
+     {
+-        Schema::dropIfExists('entries');
++        Schema::dropIfExists(config('statamic.eloquent-driver.table_prefix', '').'entries');
+     }
+ }
+diff --git a/src/Assets/Asset.php b/src/Assets/Asset.php
+new file mode 100644
+index 0000000..829cc19
+--- /dev/null
++++ b/src/Assets/Asset.php
+@@ -0,0 +1,77 @@
++<?php
++
++namespace Statamic\Eloquent\Assets;
++
++use Illuminate\Support\Facades\Cache;
++use Statamic\Assets\Asset as FileAsset;
++use Statamic\Facades\Blink;
++use Statamic\Support\Arr;
++
++class Asset extends FileAsset
++{
++    public function meta($key = null)
++    {
++        if (func_num_args() === 1) {
++            return $this->metaValue($key);
++        }
++
++        if (!config('statamic.assets.cache_meta')) {
++            return $this->generateMeta();
++        }
++
++        if ($this->meta) {
++            return array_merge($this->meta, ['data' => $this->data->all()]);
++        }
++
++        return $this->meta = Cache::rememberForever($this->metaCacheKey(), function () {
++            if ($model = app('statamic.eloquent.assets.model')::where('handle', $this->container()->handle() . '::' . $this->metaPath())->first()) {
++                return $model->data;
++            }
++
++            $this->writeMeta($meta = $this->generateMeta());
++
++            return $meta;
++        });
++    }
++
++    public function exists()
++    {
++        $files = Blink::once($this->container()->handle() . '::files', function () {
++            return $this->container()->files();
++        });
++
++        if (!$path = $this->path()) {
++            return false;
++        }
++
++        return $files->contains($path);
++    }
++
++    private function metaValue($key)
++    {
++        $value = Arr::get($this->meta(), $key);
++
++        if (!is_null($value)) {
++            return $value;
++        }
++
++        Cache::forget($this->metaCacheKey());
++
++        $this->writeMeta($meta = $this->generateMeta());
++
++        return Arr::get($meta, $key);
++    }
++
++    public function writeMeta($meta)
++    {
++        $meta['data'] = Arr::removeNullValues($meta['data']);
++
++        $model = app('statamic.eloquent.assets.model')::firstOrNew([
++            'handle' => $this->container()->handle() . '::' . $this->metaPath()
++        ]);
++
++        $model->data = $meta;
++
++        $model->save();
++    }
++}
+\ No newline at end of file
+diff --git a/src/Assets/AssetContainer.php b/src/Assets/AssetContainer.php
+new file mode 100644
+index 0000000..e60e034
+--- /dev/null
++++ b/src/Assets/AssetContainer.php
+@@ -0,0 +1,94 @@
++<?php
++
++namespace Statamic\Eloquent\Assets;
++
++use Statamic\Assets\AssetContainer as FileEntry;
++use Statamic\Contracts\Assets\AssetContainer as AssetContainerContract;
++use Statamic\Eloquent\Assets\AssetContainerModel as Model;
++use Statamic\Events\AssetContainerDeleted;
++use Statamic\Events\AssetContainerSaved;
++
++class AssetContainer extends FileEntry
++{
++    protected $title;
++    protected $handle;
++    protected $disk;
++    protected $private;
++    protected $allowUploads;
++    protected $allowDownloading;
++    protected $allowMoving;
++    protected $allowRenaming;
++    protected $createFolders;
++    protected $searchIndex;
++
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->title($model->title)
++            ->handle($model->handle)
++            ->disk($model->disk)
++            ->allowUploads($model->settings['allow_uploads'] ?? null)
++            ->allowDownloading($model->settings['allow_downloading'] ?? null)
++            ->allowMoving($model->settings['allow_moving'] ?? null)
++            ->allowRenaming($model->settings['allow_renaming'] ?? null)
++            ->createFolders($model->settings['create_folders'] ?? null)
++            ->searchIndex($model->settings['search_index'] ?? null)
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.assets.container-model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'title' => $this->title(),
++            'handle' => $this->handle(),
++            'disk' => $this->diskHandle(),
++            'settings' => [
++                'allow_uploads' => $this->allowUploads(),
++                'allow_downloading' => $this->allowDownloading(),
++                'allow_moving' => $this->allowMoving(),
++                'allow_renaming' => $this->allowRenaming(),
++                'create_folders' => $this->createFolders(),
++                'search_index' => $this->searchIndex(),
++            ],
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        return $this;
++    }
++
++    public function save()
++    {
++        $model = $this->toModel();
++
++        $model->save();
++
++        $this->model($model->fresh());
++
++        AssetContainerSaved::dispatch($this);
++
++        return $this;
++    }
++
++    public function delete()
++    {
++        $this->submissions()->each->delete();
++
++        $this->model()->delete();
++
++        AssetContainerDeleted::dispatch($this);
++
++        return true;
++    }
++}
+diff --git a/src/Assets/AssetContainerModel.php b/src/Assets/AssetContainerModel.php
+new file mode 100644
+index 0000000..f93c3a7
+--- /dev/null
++++ b/src/Assets/AssetContainerModel.php
+@@ -0,0 +1,22 @@
++<?php
++
++namespace Statamic\Eloquent\Assets;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class AssetContainerModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'asset_containers';
++
++    protected $casts = [
++        'settings' => 'json',
++    ];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('settings'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Assets/AssetContainerRepository.php b/src/Assets/AssetContainerRepository.php
+new file mode 100644
+index 0000000..3b25a0c
+--- /dev/null
++++ b/src/Assets/AssetContainerRepository.php
+@@ -0,0 +1,53 @@
++<?php
++
++namespace Statamic\Eloquent\Assets;
++
++use Illuminate\Support\Collection;
++use Statamic\Contracts\Assets\AssetContainer as AssetContainerContract;
++use Statamic\Stache\Repositories\AssetContainerRepository as StacheRepository;
++
++class AssetContainerRepository extends StacheRepository
++{
++    protected $store;
++
++    public function all(): Collection
++    {
++        return app('statamic.eloquent.assets.container-model')::all()
++            ->map(function($model) {
++                return app(AssetContainerContract::class)->fromModel($model);
++            });
++    }
++
++    public function findByHandle(string $handle): ?AssetContainerContract
++    {
++        $model = app('statamic.eloquent.assets.container-model')::whereHandle($handle)->first();
++
++        if (! $model) {
++            return null;
++        }
++
++        return app(AssetContainerContract::class)->fromModel($model);
++    }
++
++    public function make(string $handle = null): AssetContainerContract
++    {
++        return app(AssetContainerContract::class)->handle($handle);
++    }
++
++    public function save(AssetContainerContract $container)
++    {
++        $container->toModel()->save();
++    }
++
++    public function delete($container)
++    {
++        $container->delete();
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            AssetContainerContract::class => AssetContainer::class,
++        ];
++    }
++}
+diff --git a/src/Assets/AssetModel.php b/src/Assets/AssetModel.php
+new file mode 100644
+index 0000000..5a7130d
+--- /dev/null
++++ b/src/Assets/AssetModel.php
+@@ -0,0 +1,18 @@
++<?php
++
++namespace Statamic\Eloquent\Assets;
++
++use Statamic\Eloquent\Database\BaseModel;
++
++class AssetModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'assets_meta';
++
++    protected $casts = [
++        'data' => 'json',
++        'created_at' => 'datetime',
++        'updated_at' => 'datetime',
++    ];
++}
+\ No newline at end of file
+diff --git a/src/Assets/AssetRepository.php b/src/Assets/AssetRepository.php
+new file mode 100644
+index 0000000..3f71ca5
+--- /dev/null
++++ b/src/Assets/AssetRepository.php
+@@ -0,0 +1,29 @@
++<?php
++
++ namespace Statamic\Eloquent\Assets;
++
++ use Statamic\Assets\AssetRepository as BaseRepository;
++ use Statamic\Assets\QueryBuilder;
++ use Statamic\Contracts\Assets\Asset as AssetContract;
++ use Statamic\Contracts\Assets\QueryBuilder as QueryBuilderContract;
++ use Statamic\Facades\Stache;
++
++ class AssetRepository extends BaseRepository
++ {
++    public function delete($asset)
++    {
++        $asset->container()->contents()->forget($asset->path())->save();
++
++        app('statamic.eloquent.assets.model')::where('handle', $asset->containerHandle() . '::' . $asset->metaPath())->first()->delete();
++
++        Stache::store('assets::' . $asset->containerHandle())->delete($asset);
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            AssetContract::class => Asset::class,
++            QueryBuilderContract::class => QueryBuilder::class,
++        ];
++    }
++ }
+\ No newline at end of file
+diff --git a/src/Collections/Collection.php b/src/Collections/Collection.php
+new file mode 100644
+index 0000000..da45d7c
+--- /dev/null
++++ b/src/Collections/Collection.php
+@@ -0,0 +1,93 @@
++<?php
++
++namespace Statamic\Eloquent\Collections;
++
++use Statamic\Eloquent\Collections\CollectionModel as Model;
++use Statamic\Eloquent\Structures\CollectionStructure;
++use Statamic\Entries\Collection as FileEntry;
++
++class Collection extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->title($model->title)
++            ->routes($model->settings['routes'] ?? null)
++            ->requiresSlugs($model->settings['slugs'] ?? true)
++            ->titleFormats($model->settings['title_formats'] ?? null)
++            ->mount($model->settings['mount'] ?? null)
++            ->dated($model->settings['dated'] ?? null)
++            ->ampable($model->settings['ampable'] ?? null)
++            ->sites($model->settings['sites'] ?? null)
++            ->template($model->settings['template'] ?? null)
++            ->layout($model->settings['layout'] ?? null)
++            ->cascade($model->settings['inject'] ?? [])
++            ->searchIndex($model->settings['search_index'] ?? null)
++            ->revisionsEnabled($model->settings['revisions'] ?? false)
++            ->defaultPublishState($model->settings['default_status'] ?? true)
++            ->structure($model->settings['structure'] ?? null)
++            ->sortDirection($model->settings['sort_dir'] ?? null)
++            ->sortField($model->settings['sort_field'] ?? null)
++            ->taxonomies($model->settings['taxonomies'] ?? null)
++            ->propagate($model->settings['propagate'] ?? null)
++            ->futureDateBehavior($model->settings['future_date_behavior'] ?? null)
++            ->pastDateBehavior($model->settings['past_date_behavior'] ?? null)
++            ->handle($model->handle)
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.collections.model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'title' => $this->title,
++            'handle' => $this->handle,
++            'settings' => [
++                'routes' => $this->routes,
++                'slugs' => $this->requiresSlugs(),
++                'title_formats' => collect($this->titleFormats())->filter()->values(),
++                'mount' => $this->mount,
++                'dated' => $this->dated,
++                'ampable' => $this->ampable,
++                'sites' => $this->sites,
++                'template' => $this->template,
++                'layout' => $this->layout,
++                'inject' => $this->cascade,
++                'search_index' => $this->searchIndex,
++                'revisions' => $this->revisionsEnabled(),
++                'default_status' => $this->defaultPublishState,
++                'structure' => $this->hasStructure() ? true : null,
++                'sort_dir' => $this->sortDirection(),
++                'sort_field' => $this->sortField(),
++                'taxonomies' => $this->taxonomies,
++                'propagate' => $this->propagate(),
++                'past_date_behavior' => $this->pastDateBehavior(),
++                'future_date_behavior' => $this->futureDateBehavior(),
++            ]
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        $this->id($model->id);
++
++        return $this;
++    }
++
++    protected function makeStructureFromContents()
++    {
++        return (new CollectionStructure)
++            ->handle($this->handle())
++            ->expectsRoot($this->structureContents->root ?? false)
++            ->maxDepth($this->structureContents->max_depth ?? null);
++    }
++}
+diff --git a/src/Collections/CollectionModel.php b/src/Collections/CollectionModel.php
+new file mode 100644
+index 0000000..8f21bfd
+--- /dev/null
++++ b/src/Collections/CollectionModel.php
+@@ -0,0 +1,25 @@
++<?php
++
++namespace Statamic\Eloquent\Collections;
++
++use Statamic\Eloquent\Database\BaseModel;
++
++class CollectionModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'collections';
++
++    protected $casts = [
++        'settings' => 'json',
++        'settings.routes' => 'array',
++        'settings.inject' => 'array',
++        'settings.taxonomies' => 'array',
++        'settings.structure' => 'array',
++        'settings.sites' => 'array',
++        'settings.revisions' => 'boolean',
++        'settings.dated' => 'boolean',
++        'settings.default_publish_state' => 'boolean',
++        'settings.ampable' => 'boolean',
++    ];
++}
+diff --git a/src/Collections/CollectionRepository.php b/src/Collections/CollectionRepository.php
+new file mode 100644
+index 0000000..a36ce4e
+--- /dev/null
++++ b/src/Collections/CollectionRepository.php
+@@ -0,0 +1,75 @@
++<?php
++
++namespace Statamic\Eloquent\Collections;
++
++use Illuminate\Support\Collection as IlluminateCollection;
++use Statamic\Contracts\Entries\Collection as CollectionContract;
++use Statamic\Eloquent\Entries\EntryModel;
++use Statamic\Stache\Repositories\CollectionRepository as StacheRepository;
++
++class CollectionRepository extends StacheRepository
++{
++    public function updateEntryUris($collection, $ids = null)
++    {
++        $query = $collection->queryEntries();
++
++        if ($ids) {
++            $query->whereIn('id', $ids);
++        }
++
++        $query->get()->each(function ($entry) {
++            app('statamic.eloquent.entries.model')::find($entry->id())->update(['uri' => $entry->uri()]);
++        });
++    }
++
++    public function all(): IlluminateCollection
++    {
++        return $this->transform(app('statamic.eloquent.collections.model')::all());
++    }
++
++    public function find($handle): ?CollectionContract
++    {
++        $model = app('statamic.eloquent.collections.model')::whereHandle($handle)->first();
++
++        return $model
++            ? app(CollectionContract::class)->fromModel($model)
++            : null;
++    }
++
++    public function findByHandle($handle): ?CollectionContract
++    {
++        $model = app('statamic.eloquent.collections.model')::whereHandle($handle)->first();
++
++        return $model
++            ? app(CollectionContract::class)->fromModel($model)
++            : null;
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++
++    public function delete($entry)
++    {
++        $entry->model()->delete();
++    }
++
++    protected function transform($items, $columns = [])
++    {
++        return IlluminateCollection::make($items)->map(function ($model) {
++            return Collection::fromModel($model);
++        });
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            CollectionContract::class => Collection::class,
++        ];
++    }
++}
+diff --git a/src/Commands/ImportAssets.php b/src/Commands/ImportAssets.php
+new file mode 100644
+index 0000000..0213a1f
+--- /dev/null
++++ b/src/Commands/ImportAssets.php
+@@ -0,0 +1,67 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Contracts\Assets\AssetContainerRepository as AssetContainerRepositoryContract;
++use Statamic\Contracts\Assets\AssetContainer as AssetContainerContract;
++use Statamic\Eloquent\Assets\AssetContainer;
++use Statamic\Stache\Repositories\AssetContainerRepository;
++use Statamic\Statamic;
++
++class ImportAssets extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-assets';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based asset containers into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importAssetContainers();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        Statamic::repository(AssetContainerRepositoryContract::class, AssetContainerRepository::class);
++
++        // bind to the eloquent container class so we can use toModel()
++        app()->bind(AssetContainerContract::class, AssetContainer::class);
++    }
++
++    private function importAssetContainers()
++    {
++        $containers = \Statamic\Facades\AssetContainer::all();
++        $bar = $this->output->createProgressBar($containers->count());
++
++        $containers->each(function ($container) use ($bar) {
++            $container->toModel()->save();
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Asset containers imported');
++    }
++}
+diff --git a/src/Commands/ImportBlueprints.php b/src/Commands/ImportBlueprints.php
+new file mode 100644
+index 0000000..6ce7fc4
+--- /dev/null
++++ b/src/Commands/ImportBlueprints.php
+@@ -0,0 +1,144 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Facades\Fieldset;
++use Statamic\Facades\File;
++use Statamic\Facades\YAML;
++use Statamic\Support\Arr;
++use Statamic\Support\Str;
++
++class ImportBlueprints extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-blueprints';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based blueprints and fieldsets into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importBlueprints();
++        $this->importFieldsets();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        app()->singleton(
++            'Statamic\Fields\BlueprintRepository',
++            'Statamic\Fields\BlueprintRepository'
++        );
++
++        app()->singleton(
++            'Statamic\Fields\FieldsetRepository',
++            'Statamic\Fields\FieldsetRepository'
++        );
++    }
++
++    private function importBlueprints()
++    {
++        $directory = resource_path('blueprints');
++
++        $files = File::withAbsolutePaths()
++            ->getFilesByTypeRecursively($directory, 'yaml');
++
++        $bar = $this->output->createProgressBar($files->count());
++
++        $files->each(function ($path) use ($bar, $directory) {
++
++            [$namespace, $handle] = $this->getNamespaceAndHandle(
++                Str::after(Str::before($path, '.yaml'), $directory.'/')
++            );
++
++            $contents = YAML::file($path)->parse();
++
++            $blueprint = (new Blueprint)
++                ->setHidden(Arr::pull($contents, 'hide'))
++                ->setOrder(Arr::pull($contents, 'order'))
++                ->setInitialPath($path)
++                ->setHandle($handle)
++                ->setNamespace($namespace ?? null)
++                ->setContents($contents);
++
++            $model = app('statamic.eloquent.blueprints.blueprint-model')::firstOrNew([
++                'handle' => $blueprint->handle(),
++                'namespace' => $blueprint->namespace() ?? null,
++            ]);
++
++            $model->data = $blueprint->contents();
++            $model->save();
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Blueprints imported');
++    }
++
++    private function importFieldsets()
++    {
++        $directory = resource_path('fieldsets');
++
++        $files = File::withAbsolutePaths()
++            ->getFilesByTypeRecursively($directory, 'yaml');
++
++        $bar = $this->output->createProgressBar($files->count());
++
++        $files->each(function ($file) use ($bar) {
++
++            $basename = str_after($file, str_finish($this->directory, '/'));
++            $handle = str_before($basename, '.yaml');
++            $handle = str_replace('/', '.', $handle);
++
++            $fieldset = (new Fieldset)
++                ->setHandle($handle)
++                ->setContents(YAML::file($file)->parse());
++
++            $model = app('statamic.eloquent.blueprints.fieldset-model')::firstOrNew([
++                'handle' => $fieldset->handle(),
++            ]);
++
++            $model->data = $fieldset->contents();
++            $model->save();
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Fieldsets imported');
++    }
++
++    private function getNamespaceAndHandle($blueprint)
++    {
++        $blueprint = str_replace('/', '.', $blueprint);
++        $parts = explode('.', $blueprint);
++        $handle = array_pop($parts);
++        $namespace = implode('.', $parts);
++        $namespace = empty($namespace) ? null : $namespace;
++
++        return [$namespace, $handle];
++    }
++}
+diff --git a/src/Commands/ImportCollections.php b/src/Commands/ImportCollections.php
+new file mode 100644
+index 0000000..8bbfee8
+--- /dev/null
++++ b/src/Commands/ImportCollections.php
+@@ -0,0 +1,72 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Contracts\Entries\Collection as CollectionContract;
++use Statamic\Contracts\Entries\CollectionRepository as CollectionRepositoryContract;
++use Statamic\Contracts\Structures\CollectionTreeRepository as CollectionTreeRepositoryContract;
++use Statamic\Eloquent\Collections\Collection as EloquentCollection;
++use Statamic\Facades\Collection;
++use Statamic\Stache\Repositories\CollectionRepository;
++use Statamic\Stache\Repositories\CollectionTreeRepository;
++use Statamic\Statamic;
++
++class ImportCollections extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-collections';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based collections into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importCollections();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        Statamic::repository(CollectionRepositoryContract::class, CollectionRepository::class);
++        Statamic::repository(CollectionTreeRepositoryContract::class, CollectionTreeRepository::class);
++
++        // bind to the eloquent collection class so we can use toModel()
++        app()->bind(CollectionContract::class, EloquentCollection::class);
++    }
++
++    private function importCollections()
++    {
++        $collections = Collection::all();
++        $bar = $this->output->createProgressBar($collections->count());
++
++        $collections->each(function ($collection) use ($bar) {
++            $collection->toModel()->save();
++            $collection->tree()->toModel()->save();
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Collections imported');
++    }
++}
+diff --git a/src/Commands/ImportEntries.php b/src/Commands/ImportEntries.php
+index 9f6b882..341f043 100644
+--- a/src/Commands/ImportEntries.php
++++ b/src/Commands/ImportEntries.php
+@@ -5,9 +5,8 @@
+ use Illuminate\Console\Command;
+ use Statamic\Console\RunsInPlease;
+ use Statamic\Contracts\Entries\CollectionRepository as CollectionRepositoryContract;
++use Statamic\Contracts\Entries\Entry as EntryContract;
+ use Statamic\Contracts\Entries\EntryRepository as EntryRepositoryContract;
+-use Statamic\Eloquent\Entries\EntryQueryBuilder;
+-use Statamic\Eloquent\Entries\UuidEntryModel;
+ use Statamic\Facades\Entry;
+ use Statamic\Stache\Repositories\CollectionRepository;
+ use Statamic\Stache\Repositories\EntryRepository;
+@@ -49,6 +48,9 @@ private function useDefaultRepositories()
+     {
+         Statamic::repository(EntryRepositoryContract::class, EntryRepository::class);
+         Statamic::repository(CollectionRepositoryContract::class, CollectionRepository::class);
++
++        // bind to the eloquent entry class so we can use toModel()
++        app()->bind(EntryContract::class, app('statamic.eloquent.entries.entry'));
+     }
+
+     private function importEntries()
+@@ -57,7 +59,7 @@ private function importEntries()
+         $bar = $this->output->createProgressBar($entries->count());
+
+         $entries->each(function ($entry) use ($bar) {
+-            $this->toModel($entry)->save();
++            $entry->toModel()->save();
+             $bar->advance();
+         });
+
+@@ -65,22 +67,4 @@ private function importEntries()
+         $this->line('');
+         $this->info('Entries imported');
+     }
+-
+-    private function toModel($entry)
+-    {
+-        return new UuidEntryModel([
+-            'id' => $entry->id(),
+-            'origin_id' => optional($entry->origin())->id(),
+-            'site' => $entry->locale(),
+-            'slug' => $entry->slug(),
+-            'uri' => $entry->uri(),
+-            'date' => $entry->hasDate() ? $entry->date() : null,
+-            'collection' => $entry->collectionHandle(),
+-            'data' => $entry->data()->except(EntryQueryBuilder::COLUMNS),
+-            'published' => $entry->published(),
+-            'status' => $entry->status(),
+-            'created_at' => $entry->lastModified(),
+-            'updated_at' => $entry->lastModified(),
+-        ]);
+-    }
+ }
+diff --git a/src/Commands/ImportForms.php b/src/Commands/ImportForms.php
+new file mode 100644
+index 0000000..86112b6
+--- /dev/null
++++ b/src/Commands/ImportForms.php
+@@ -0,0 +1,79 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Contracts\Forms\Form as FormContract;
++use Statamic\Contracts\Forms\FormRepository as FormRepositoryContract;
++use Statamic\Eloquent\Forms\Form;
++use Statamic\Forms\FormRepository;
++use Statamic\Statamic;
++
++class ImportForms extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-forms';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based forms and submissions into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importForms();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        Statamic::repository(FormRepositoryContract::class, FormRepository::class);
++
++        // bind to the eloquent container class so we can use toModel()
++        app()->bind(FormContract::class, Form::class);
++    }
++
++    private function importForms()
++    {
++        $forms = \Statamic\Facades\Form::all();
++        $bar = $this->output->createProgressBar($forms->count());
++
++        $forms->each(function ($form) use ($bar) {
++
++            $model = $form->toModel();
++            $model->save();
++
++            $form->fileSubmissions()->each(function($submission) use ($model) {
++
++                $model->submissions()->create([
++                    'created_at' => $submission->date(),
++                    'data' => $submission->data(),
++                ]);
++
++            });
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Forms imported');
++    }
++}
+diff --git a/src/Commands/ImportGlobals.php b/src/Commands/ImportGlobals.php
+new file mode 100644
+index 0000000..86e5fcd
+--- /dev/null
++++ b/src/Commands/ImportGlobals.php
+@@ -0,0 +1,69 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Contracts\Globals\GlobalSet as GlobalSetContract;
++use Statamic\Contracts\Globals\GlobalRepository as GlobalRepositoryContract;
++use Statamic\Eloquent\Globals\GlobalSet;
++use Statamic\Stache\Repositories\GlobalRepository;
++use Statamic\Statamic;
++
++class ImportGlobals extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-globals';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based globals into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importGlobals();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        Statamic::repository(GlobalRepositoryContract::class, GlobalRepository::class);
++
++        // bind to the eloquent container class so we can use toModel()
++        app()->bind(GlobalSetContract::class, GlobalSet::class);
++    }
++
++    private function importGlobals()
++    {
++        $globalsets = \Statamic\Facades\GlobalSet::all();
++        $bar = $this->output->createProgressBar($globalsets->count());
++
++        $globalsets->each(function ($globalset) use ($bar) {
++            $model = $globalset->toModel();
++            $model->save();
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Globals imported');
++    }
++}
+diff --git a/src/Commands/ImportNavs.php b/src/Commands/ImportNavs.php
+new file mode 100644
+index 0000000..cfcebb6
+--- /dev/null
++++ b/src/Commands/ImportNavs.php
+@@ -0,0 +1,76 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Contracts\Structures\Nav as NavContract;
++use Statamic\Contracts\Structures\NavigationRepository as NavigationRepositoryContract;
++use Statamic\Contracts\Structures\NavTreeRepository as NavTreeRepositoryContract;
++use Statamic\Contracts\Structures\Tree as TreeContract;
++use Statamic\Eloquent\Structures\Nav;
++use Statamic\Eloquent\Structures\Tree;
++use Statamic\Stache\Repositories\NavigationRepository;
++use Statamic\Stache\Repositories\NavTreeRepository;
++use Statamic\Statamic;
++
++class ImportNavs extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-navs';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based navs into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importNavs();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        Statamic::repository(NavigationRepositoryContract::class, NavigationRepository::class);
++        Statamic::repository(NavTreeRepositoryContract::class, NavTreeRepository::class);
++
++        // bind to the eloquent container class so we can use toModel()
++        app()->bind(NavContract::class, Nav::class);
++        app()->bind(TreeContract::class, Tree::class);
++    }
++
++    private function importNavs()
++    {
++        $navs = \Statamic\Facades\Nav::all();
++        $bar = $this->output->createProgressBar($navs->count());
++
++        $navs->each(function ($nav) use ($bar) {
++            $nav->toModel()->save();
++
++            $nav->tree->save();
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Navs imported');
++    }
++}
+diff --git a/src/Commands/ImportTaxonomies.php b/src/Commands/ImportTaxonomies.php
+new file mode 100644
+index 0000000..15485e5
+--- /dev/null
++++ b/src/Commands/ImportTaxonomies.php
+@@ -0,0 +1,93 @@
++<?php
++
++namespace Statamic\Eloquent\Commands;
++
++use Illuminate\Console\Command;
++use Statamic\Console\RunsInPlease;
++use Statamic\Contracts\Taxonomies\Taxonomy as TaxonomyContract;
++use Statamic\Contracts\Taxonomies\TaxonomyRepository as TaxonomyRepositoryContract;
++use Statamic\Contracts\Taxonomies\Term as TermContract;
++use Statamic\Contracts\Taxonomies\TermRepository as TermRepositoryContract;
++use Statamic\Eloquent\Taxonomies\Taxonomy;
++use Statamic\Eloquent\Taxonomies\Term;
++use Statamic\Stache\Repositories\TaxonomyRepository;
++use Statamic\Stache\Repositories\TermRepository;
++use Statamic\Statamic;
++
++class ImportTaxonomies extends Command
++{
++    use RunsInPlease;
++
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'statamic:eloquent:import-taxonomies';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Imports file based taxonomies and terms into the database.';
++
++    /**
++     * Execute the console command.
++     *
++     * @return int
++     */
++    public function handle()
++    {
++        $this->useDefaultRepositories();
++
++        $this->importTaxonomies();
++        $this->importTerms();
++
++        return 0;
++    }
++
++    private function useDefaultRepositories()
++    {
++        Statamic::repository(TaxonomyRepositoryContract::class, TaxonomyRepository::class);
++        Statamic::repository(TermRepositoryContract::class, TermRepository::class);
++
++        // bind to the eloquent container class so we can use toModel()
++        app()->bind(TaxonomyContract::class, Taxonomy::class);
++        app()->bind(TermContract::class, Term::class);
++    }
++
++    private function importTaxonomies()
++    {
++        $taxonomies = \Statamic\Facades\Taxonomy::all();
++        $bar = $this->output->createProgressBar($taxonomies->count());
++
++        $taxonomies->each(function ($taxonomy) use ($bar) {
++            $model = $taxonomy->toModel();
++            $model->save();
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Taxonomies imported');
++    }
++
++    private function importTerms()
++    {
++        $terms = \Statamic\Facades\Term::all();
++        $bar = $this->output->createProgressBar($terms->count());
++
++        $terms->each(function ($term) use ($bar) {
++            $model = $term->toModel();
++            $model->save();
++
++            $bar->advance();
++        });
++
++        $bar->finish();
++        $this->line('');
++        $this->info('Terms imported');
++    }
++}
+diff --git a/src/Database/BaseModel.php b/src/Database/BaseModel.php
+new file mode 100644
+index 0000000..6599abb
+--- /dev/null
++++ b/src/Database/BaseModel.php
+@@ -0,0 +1,19 @@
++<?php
++
++namespace Statamic\Eloquent\Database;
++
++use Illuminate\Database\Eloquent\Model as Eloquent;
++
++class BaseModel extends Eloquent
++{
++    public function __construct(array $attributes = [])
++    {
++        parent::__construct($attributes);
++
++        $this->setTable(config('statamic.eloquent-driver.table_prefix', '').$this->getTable());
++
++        if ($connection = config('statamic.eloquent-driver.connection', false)) {
++            $this->setConnection($connection);
++        }
++    }
++}
+diff --git a/src/Entries/CollectionRepository.php b/src/Entries/CollectionRepository.php
+deleted file mode 100644
+index 58f0624..0000000
+--- a/src/Entries/CollectionRepository.php
++++ /dev/null
+@@ -1,21 +0,0 @@
+-<?php
+-
+-namespace Statamic\Eloquent\Entries;
+-
+-use Statamic\Stache\Repositories\CollectionRepository as StacheRepository;
+-
+-class CollectionRepository extends StacheRepository
+-{
+-    public function updateEntryUris($collection, $ids = null)
+-    {
+-        $query = $collection->queryEntries();
+-
+-        if ($ids) {
+-            $query->whereIn('id', $ids);
+-        }
+-
+-        $query->get()->each(function ($entry) {
+-            EntryModel::find($entry->id())->update(['uri' => $entry->uri()]);
+-        });
+-    }
+-}
+diff --git a/src/Entries/Entry.php b/src/Entries/Entry.php
+index cbe04e0..8077e54 100644
+--- a/src/Entries/Entry.php
++++ b/src/Entries/Entry.php
+@@ -2,6 +2,7 @@
+
+ namespace Statamic\Eloquent\Entries;
+
++use Illuminate\Support\Carbon;
+ use Statamic\Eloquent\Entries\EntryModel as Model;
+ use Statamic\Entries\Entry as FileEntry;
+
+@@ -12,6 +13,7 @@ class Entry extends FileEntry
+     public static function fromModel(Model $model)
+     {
+         return (new static)
++            ->origin($model->origin_id)
+             ->locale($model->site)
+             ->slug($model->slug)
+             ->date($model->date)
+@@ -33,7 +35,6 @@ public function toModel()
+         }
+
+         return $class::findOrNew($this->id())->fill([
+-            'id' => $this->id(),
+             'origin_id' => $this->originId(),
+             'site' => $this->locale(),
+             'slug' => $this->slug(),
+@@ -59,9 +60,31 @@ public function model($model = null)
+         return $this;
+     }
+
++    /**
++     * This overwrite is needed to prevent Statamic to save updated_at also into the data. We track updated_at already in the database.
++     *
++     * @param null $user
++     * @return $this|Entry|FileEntry|\Statamic\Taxonomies\LocalizedTerm
++     */
++    public function updateLastModified($user = null)
++    {
++        if (! config('statamic.system.track_last_update')) {
++            return $this;
++        }
++
++        $user
++            ? $this->set('updated_by', $user->id())
++            : $this->remove('updated_by');
++
++        // ensure 'updated_at' does not exists in the data of the entry.
++        $this->remove('updated_at');
++
++        return $this;
++    }
++
+     public function lastModified()
+     {
+-        return $this->model->updated_at;
++        return $this->model?->updated_at;
+     }
+
+     public function origin($origin = null)
+@@ -76,11 +99,11 @@ public function origin($origin = null)
+             return $this->origin;
+         }
+
+-        if (! $this->model->origin) {
+-            return null;
++        if (! $this->model?->origin_id) {
++            return;
+         }
+
+-        return self::fromModel($this->model->origin);
++        return self::fromModel($this->model->origin_id);
+     }
+
+     public function originId()
+diff --git a/src/Entries/EntryModel.php b/src/Entries/EntryModel.php
+index 64fdfaf..11fa3f5 100644
+--- a/src/Entries/EntryModel.php
++++ b/src/Entries/EntryModel.php
+@@ -2,10 +2,10 @@
+
+ namespace Statamic\Eloquent\Entries;
+
+-use Illuminate\Database\Eloquent\Model as Eloquent;
+ use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
+
+-class EntryModel extends Eloquent
++class EntryModel extends BaseModel
+ {
+     protected $guarded = [];
+
+@@ -14,7 +14,7 @@ class EntryModel extends Eloquent
+     protected $casts = [
+         'date' => 'datetime',
+         'data' => 'json',
+-        'published' => 'bool',
++        'published' => 'boolean',
+     ];
+
+     public function origin()
+diff --git a/src/Entries/EntryQueryBuilder.php b/src/Entries/EntryQueryBuilder.php
+index f02a62b..08e4090 100644
+--- a/src/Entries/EntryQueryBuilder.php
++++ b/src/Entries/EntryQueryBuilder.php
+@@ -19,7 +19,7 @@ class EntryQueryBuilder extends EloquentQueryBuilder implements QueryBuilder
+     protected function transform($items, $columns = [])
+     {
+         return EntryCollection::make($items)->map(function ($model) {
+-            return Entry::fromModel($model);
++            return app('statamic.eloquent.entries.entry')::fromModel($model);
+         });
+     }
+
+diff --git a/src/Entries/EntryRepository.php b/src/Entries/EntryRepository.php
+index 37c2533..fd57ec5 100644
+--- a/src/Entries/EntryRepository.php
++++ b/src/Entries/EntryRepository.php
+@@ -11,7 +11,7 @@ class EntryRepository extends StacheRepository
+     public static function bindings(): array
+     {
+         return [
+-            EntryContract::class => Entry::class,
++            EntryContract::class => app('statamic.eloquent.entries.entry'),
+             QueryBuilder::class => EntryQueryBuilder::class,
+         ];
+     }
+diff --git a/src/Fields/BlueprintModel.php b/src/Fields/BlueprintModel.php
+new file mode 100644
+index 0000000..1352147
+--- /dev/null
++++ b/src/Fields/BlueprintModel.php
+@@ -0,0 +1,24 @@
++<?php
++
++namespace Statamic\Eloquent\Fields;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class BlueprintModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'blueprints';
++
++    protected $casts = [
++        'data' => 'json',
++        'created_at' => 'datetime',
++        'updated_at' => 'datetime',
++    ];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('data'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Fields/BlueprintRepository.php b/src/Fields/BlueprintRepository.php
+new file mode 100644
+index 0000000..d5a9f68
+--- /dev/null
++++ b/src/Fields/BlueprintRepository.php
+@@ -0,0 +1,134 @@
++<?php
++
++namespace Statamic\Eloquent\Fields;
++
++use Statamic\Facades\Blink;
++use Statamic\Fields\Blueprint;
++use Statamic\Fields\BlueprintRepository as BaseBlueprintRepository;
++use Statamic\Support\Arr;
++
++class BlueprintRepository extends BaseBlueprintRepository
++{
++    private const BLINK_FOUND = 'blueprints.found';
++    private const BLINK_FROM_FILE = 'blueprints.from-file';
++    private const BLINK_NAMESPACE_PATHS = 'blueprints.paths-in-namespace';
++
++    public function find($blueprint): ?Blueprint
++    {
++        return Blink::store(self::BLINK_FOUND)->once($blueprint, function () use ($blueprint) {
++            [$namespace, $handle] = $this->getNamespaceAndHandle($blueprint);
++            if (!$blueprint) {
++                return null;
++            }
++
++            if (($blueprintModel = app('statamic.eloquent.blueprints.blueprint-model')::where('namespace', $namespace)->where('handle', $handle)->first()) === null) {
++                throw_if(
++                    $namespace === null && $handle === 'default',
++                    Exception::class,
++                    'Default Blueprint is required but not found. '
++                );
++
++                return null;
++            }
++
++            return $this->makeBlueprintFromModel($blueprintModel) ?? $this->findFallback($blueprint);
++        });
++    }
++
++    public function save(Blueprint $blueprint)
++    {
++        $this->clearBlinkCaches();
++
++        $this->updateModel($blueprint);
++    }
++
++    public function delete(Blueprint $blueprint)
++    {
++        $this->clearBlinkCaches();
++
++        $this->deleteModel($blueprint);
++    }
++
++    private function clearBlinkCaches()
++    {
++        Blink::store(self::BLINK_FOUND)->flush();
++        Blink::store(self::BLINK_FROM_FILE)->flush();
++        Blink::store(self::BLINK_NAMESPACE_PATHS)->flush();
++    }
++
++    public function in(string $namespace)
++    {
++        return $this
++            ->filesIn($namespace)
++            ->map(function ($file) {
++                return $this->makeBlueprintFromModel($file);
++            })
++            ->sort(function ($a, $b) {
++                $orderA = $a->order() ?? 99999;
++                $orderB = $b->order() ?? 99999;
++
++                return $orderA === $orderB
++                    ? $a->title() <=> $b->title()
++                    : $orderA <=> $orderB;
++            })
++            ->keyBy->handle();
++    }
++
++    private function filesIn($namespace)
++    {
++        return Blink::store(self::BLINK_NAMESPACE_PATHS)->once($namespace, function () use ($namespace) {
++            $namespace = str_replace('/', '.', $namespace);
++
++            if (count(($blueprintModels = BlueprintModel::where('namespace', $namespace)->get())) == 0) {
++                return collect();
++            }
++
++            return $blueprintModels;
++        });
++    }
++
++    private function makeBlueprintFromModel($model)
++    {
++        return Blink::store(self::BLINK_FROM_FILE)->once('database:blueprints:' . $model->id, function () use ($model) {
++            return (new Blueprint)
++                ->setHidden(Arr::get($model->data, 'hide'))
++                ->setOrder(Arr::get($model->data, 'order'))
++                ->setHandle($model->handle)
++                ->setNamespace($model->namespace)
++                ->setContents($model->data);
++        });
++    }
++
++    private function getNamespaceAndHandle($blueprint)
++    {
++        $blueprint = str_replace('/', '.', $blueprint);
++        $parts = explode('.', $blueprint);
++        $handle = array_pop($parts);
++        $namespace = implode('.', $parts);
++        $namespace = empty($namespace) ? null : $namespace;
++
++        return [$namespace, $handle];
++    }
++
++    public function updateModel($blueprint)
++    {
++        $model = app('statamic.eloquent.blueprints.blueprint-model')::firstOrNew([
++            'handle' => $blueprint->handle(),
++            'namespace' => $blueprint->namespace() ?? null,
++        ]);
++
++        $model->data = $blueprint->contents();
++        $model->save();
++    }
++
++    public function deleteModel($blueprint)
++    {
++        $model = app('statamic.eloquent.blueprints.blueprint-model')::where('namespace', $blueprint->namespace() ?? null)
++            ->where('handle', $blueprint->handle())
++            ->first();
++
++        if ($model) {
++            $model->delete();
++        }
++    }
++}
+diff --git a/src/Fields/FieldsetModel.php b/src/Fields/FieldsetModel.php
+new file mode 100644
+index 0000000..7a1032f
+--- /dev/null
++++ b/src/Fields/FieldsetModel.php
+@@ -0,0 +1,24 @@
++<?php
++
++namespace Statamic\Eloquent\Fields;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class FieldsetModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'fieldsets';
++
++    protected $casts = [
++        'data' => 'json',
++        'created_at' => 'datetime',
++        'updated_at' => 'datetime',
++    ];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('data'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Fields/FieldsetRepository.php b/src/Fields/FieldsetRepository.php
+new file mode 100644
+index 0000000..e11ce67
+--- /dev/null
++++ b/src/Fields/FieldsetRepository.php
+@@ -0,0 +1,76 @@
++<?php
++
++namespace Statamic\Eloquent\Fields;
++
++use Illuminate\Support\Collection;
++use Statamic\Facades\Blink;
++use Statamic\Fields\Fieldset;
++use Statamic\Fields\FieldsetRepository as BaseFieldsetRepository;
++
++class FieldsetRepository extends BaseFieldsetRepository
++{
++    public function all(): Collection
++    {
++        return Blink::once('fieldsets', function () {
++            if (count(($models = app('statamic.eloquent.blueprints.fieldsets-model')::get() ?? collect())) === 0) {
++                return collect();
++            }
++
++            return $models->map(function ($model) {
++                return (new Fieldset)
++                    ->setHandle($model->handle)
++                    ->setContents($model->data);
++            });
++        });
++    }
++
++    public function find($handle): ?Fieldset
++    {
++        if ($cached = array_get($this->fieldsets, $handle)) {
++            return $cached;
++        }
++
++        $handle = str_replace('/', '.', $handle);
++
++        if (($model = app('statamic.eloquent.blueprints.fieldsets-model')::where('handle', $handle)->first()) === null) {
++            return null;
++        }
++
++        $fieldset = (new Fieldset)
++            ->setHandle($handle)
++            ->setContents($model->data);
++
++        $this->fieldsets[$handle] = $fieldset;
++
++        return $fieldset;
++    }
++
++    public function save(Fieldset $fieldset)
++    {
++        $this->updateModel($fieldset);
++    }
++
++    public function delete(Fieldset $fieldset)
++    {
++        $this->deleteModel($fieldset);
++    }
++
++    public function updateModel($fieldset)
++    {
++        $model = app('statamic.eloquent.blueprints.fieldsets-model')::firstOrNew([
++            'handle' => $fieldset->handle(),
++        ]);
++
++        $model->data = $fieldset->contents();
++        $model->save();
++    }
++
++    public function deleteModel($fieldset)
++    {
++        $model = app('statamic.eloquent.blueprints.fieldsets-model')::where('handle', $fieldset->handle())->first();
++
++        if ($model) {
++            $model->delete();
++        }
++    }
++}
+diff --git a/src/Forms/Form.php b/src/Forms/Form.php
+new file mode 100644
+index 0000000..5756d56
+--- /dev/null
++++ b/src/Forms/Form.php
+@@ -0,0 +1,91 @@
++<?php
++
++namespace Statamic\Eloquent\Forms;
++
++use Statamic\Eloquent\Forms\FormModel as Model;
++use Statamic\Events\FormDeleted;
++use Statamic\Events\FormSaved;
++use Statamic\Forms\Form as FileEntry;
++
++class Form extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->title($model->title)
++            ->handle($model->handle)
++            ->store($model->settings['store'] ?? null)
++            ->email($model->settings['email'] ?? null)
++            ->honeypot($model->settings['honeypot'] ?? null)
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.forms.model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'title' => $this->title(),
++            'handle' => $this->handle(),
++            'settings' => [
++                'store' => $this->store(),
++                'email' => $this->email(),
++                'honeypot' => $this->honeypot(),
++            ],
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        return $this;
++    }
++
++    public function save()
++    {
++        $model = $this->toModel();
++
++        $model->save();
++
++        $this->model($model->fresh());
++
++        FormSaved::dispatch($this);
++    }
++
++    public function delete()
++    {
++        $this->submissions()->each->delete();
++
++        $this->model()->delete();
++
++        FormDeleted::dispatch($this);
++    }
++
++    public function submissions()
++    {
++        return $this->model()->submissions()->get()->map(function ($model) {
++            $submission = $this->makeSubmission()
++                ->id($model->id)
++                ->data($model->data);
++
++            $submission
++                ->date($model->created_at);
++
++            return $submission;
++        });
++    }
++
++    public function submission($id)
++    {
++        return $this->submissions()->filter(function ($submission) use ($id) {
++            return $submission->id() == $id;
++        })->first();
++    }
++}
+diff --git a/src/Forms/FormModel.php b/src/Forms/FormModel.php
+new file mode 100644
+index 0000000..d98f74a
+--- /dev/null
++++ b/src/Forms/FormModel.php
+@@ -0,0 +1,21 @@
++<?php
++
++namespace Statamic\Eloquent\Forms;
++
++use Statamic\Eloquent\Database\BaseModel;
++
++class FormModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'forms';
++
++    protected $casts = [
++        'settings' => 'json',
++    ];
++
++    public function submissions()
++    {
++        return $this->hasMany(SubmissionModel::class, 'form_id');
++    }
++}
+diff --git a/src/Forms/FormRepository.php b/src/Forms/FormRepository.php
+new file mode 100644
+index 0000000..56c5c44
+--- /dev/null
++++ b/src/Forms/FormRepository.php
+@@ -0,0 +1,48 @@
++<?php
++
++namespace Statamic\Eloquent\Forms;
++
++use Statamic\Contracts\Forms\Form as FormContract;
++use Statamic\Contracts\Forms\Submission as SubmissionContract;
++use Statamic\Forms\FormRepository as StacheRepository;
++
++class FormRepository extends StacheRepository
++{
++    public function find($handle)
++    {
++        $model = app('statamic.eloquent.forms.model')::whereHandle($handle)->first();
++
++        if (! $model) {
++            return;
++        }
++
++        return app(FormContract::class)->fromModel($model);
++    }
++
++    public function all()
++    {
++        return FormModel::all()
++            ->map(function ($form) {
++                return app(FormContract::class)::fromModel($form);
++            });
++    }
++
++    public function make($handle = null)
++    {
++        $form = app(FormContract::class);
++
++        if ($handle) {
++            $form->handle($handle);
++        }
++
++        return $form;
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            FormContract::class => Form::class,
++            SubmissionContract::class => Submission::class,
++        ];
++    }
++}
+diff --git a/src/Forms/Submission.php b/src/Forms/Submission.php
+new file mode 100644
+index 0000000..84e1b39
+--- /dev/null
++++ b/src/Forms/Submission.php
+@@ -0,0 +1,71 @@
++<?php
++
++namespace Statamic\Eloquent\Forms;
++
++use Statamic\Eloquent\Forms\SubmissionModel as Model;
++use Statamic\Events\SubmissionDeleted;
++use Statamic\Events\SubmissionSaved;
++use Statamic\Forms\Submission as FileEntry;
++
++class Submission extends FileEntry
++{
++    protected $model;
++    private $id;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->id($model->id)
++            ->date($model->created_at)
++            ->data($model->data)
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.forms.model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'form_id' => $this->form->model()->id,
++            'data' => $this->data,
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        return $this;
++    }
++
++    public function date($date = null)
++    {
++        if (! is_null($date)) {
++            $this->date = $date;
++        }
++
++        return $this->date;
++    }
++
++    public function save()
++    {
++        $model = $this->toModel();
++
++        $model->save();
++
++        $this->model($model->fresh());
++
++        SubmissionSaved::dispatch($this);
++    }
++
++    public function delete()
++    {
++        $this->model->delete();
++
++        SubmissionDeleted::dispatch($this);
++    }
++}
+diff --git a/src/Forms/SubmissionModel.php b/src/Forms/SubmissionModel.php
+new file mode 100644
+index 0000000..e45419c
+--- /dev/null
++++ b/src/Forms/SubmissionModel.php
+@@ -0,0 +1,21 @@
++<?php
++
++namespace Statamic\Eloquent\Forms;
++
++use Statamic\Eloquent\Database\BaseModel;
++
++class SubmissionModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'form_submissions';
++
++    protected $casts = [
++        'data' => 'json',
++    ];
++
++    public function form()
++    {
++        return $this->hasOne(FormModel::class, 'id');
++    }
++}
+diff --git a/src/Globals/GlobalRepository.php b/src/Globals/GlobalRepository.php
+new file mode 100644
+index 0000000..66ce5cb
+--- /dev/null
++++ b/src/Globals/GlobalRepository.php
+@@ -0,0 +1,55 @@
++<?php
++
++namespace Statamic\Eloquent\Globals;
++
++use Statamic\Contracts\Globals\GlobalSet as GlobalSetContract;
++use Statamic\Contracts\Globals\Variables as VariablesContract;
++use Statamic\Globals\GlobalCollection;
++use Statamic\Stache\Repositories\GlobalRepository as StacheRepository;
++
++class GlobalRepository extends StacheRepository
++{
++    protected function transform($items, $columns = [])
++    {
++        return GlobalCollection::make($items)->map(function ($model) {
++            return app(GlobalSetContract::class)::fromModel($model);
++        });
++    }
++
++    public function find($handle): ?GlobalSetContract
++    {
++        return app(GlobalSetContract::class)->fromModel(app('statamic.eloquent.global-sets.model')::whereHandle($handle)->firstOrFail());
++    }
++
++    public function findByHandle($handle): ?GlobalSetContract
++    {
++        return app(GlobalSetContract::class)->fromModel(app('statamic.eloquent.global-sets.model')::whereHandle($handle)->firstOrFail());
++    }
++
++    public function all(): GlobalCollection
++    {
++        return $this->transform(app('statamic.eloquent.global-sets.model')::all());
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++
++    public function delete($entry)
++    {
++        $entry->model()->delete();
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            GlobalSetContract::class => GlobalSet::class,
++            VariablesContract::class => Variables::class,
++        ];
++    }
++}
+diff --git a/src/Globals/GlobalSet.php b/src/Globals/GlobalSet.php
+new file mode 100644
+index 0000000..cb87758
+--- /dev/null
++++ b/src/Globals/GlobalSet.php
+@@ -0,0 +1,63 @@
++<?php
++
++namespace Statamic\Eloquent\Globals;
++
++use Statamic\Contracts\Globals\Variables as VariablesContract;
++use Statamic\Eloquent\Globals\GlobalSetModel as Model;
++use Statamic\Globals\GlobalSet as FileEntry;
++
++class GlobalSet extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        $global = (new static)
++            ->handle($model->handle)
++            ->title($model->title)
++            ->model($model);
++
++        $variablesModel = app('statamic.eloquent.global-sets.variables-model');
++
++        foreach ($model->localizations as $localization) {
++            $global->addLocalization(app(VariablesContract::class)::fromModel($variablesModel::make($localization)));
++        }
++
++        return $global;
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.global-sets.model');
++
++        $localizations = $this->localizations()->map(function ($value, $key) {
++            return $value->toModel()->toArray();
++        });
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'handle' => $this->handle(),
++            'title' => $this->title(),
++            'localizations' => $localizations,
++        ]);
++    }
++
++    public function makeLocalization($site)
++    {
++        return app(VariablesContract::class)
++            ->globalSet($this)
++            ->locale($site);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        $this->id($model->id);
++
++        return $this;
++    }
++}
+diff --git a/src/Globals/GlobalSetModel.php b/src/Globals/GlobalSetModel.php
+new file mode 100644
+index 0000000..311a925
+--- /dev/null
++++ b/src/Globals/GlobalSetModel.php
+@@ -0,0 +1,22 @@
++<?php
++
++namespace Statamic\Eloquent\Globals;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class GlobalSetModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'global_sets';
++
++    protected $casts = [
++        'localizations' => 'json',
++    ];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('data'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Globals/Variables.php b/src/Globals/Variables.php
+new file mode 100644
+index 0000000..ae98f94
+--- /dev/null
++++ b/src/Globals/Variables.php
+@@ -0,0 +1,28 @@
++<?php
++
++namespace Statamic\Eloquent\Globals;
++
++use Statamic\Eloquent\Globals\VariablesModel as Model;
++use Statamic\Globals\Variables as FileEntry;
++
++class Variables extends FileEntry
++{
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->locale($model->locale)
++            ->data($model->data);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.global-sets.variables-model');
++
++        $data = $this->data();
++
++        return $class::make([
++            'locale' => $this->locale,
++            'data' => $data,
++        ]);
++    }
++}
+diff --git a/src/Globals/VariablesModel.php b/src/Globals/VariablesModel.php
+new file mode 100644
+index 0000000..8772436
+--- /dev/null
++++ b/src/Globals/VariablesModel.php
+@@ -0,0 +1,20 @@
++<?php
++
++namespace Statamic\Eloquent\Globals;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class VariablesModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'global_set_variables';
++
++    protected $casts = [];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('data'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Revisions/Revision.php b/src/Revisions/Revision.php
+new file mode 100644
+index 0000000..e57db19
+--- /dev/null
++++ b/src/Revisions/Revision.php
+@@ -0,0 +1,86 @@
++<?php
++
++namespace Statamic\Eloquent\Revisions;
++
++use Statamic\Contracts\Revisions\Revision as Contract;
++use Statamic\Eloquent\Revisions\RevisionModel as Model;
++use Statamic\Events\RevisionDeleted;
++use Statamic\Events\RevisionSaved;
++use Statamic\Revisions\Revision as FileEntry;
++use Statamic\Revisions\WorkingCopy;
++
++class Revision extends FileEntry
++{
++    protected $id;
++    protected $key;
++    protected $date;
++    protected $user;
++    protected $userId;
++    protected $message;
++    protected $action = 'revision';
++    protected $attributes = [];
++
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->key($model->key)
++            ->action($model->action ?? false)
++            ->id($model->created_at->timestamp)
++            ->date($model->created_at)
++            ->user($model->user ?? false)
++            ->message($model->message ?? '')
++            ->attributes($model->attributes ?? [])
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.revisions.model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'key' => $this->key(),
++            'action' => $this->action(),
++            'user' => $this->user()->id(),
++            'message' => $this->message(),
++            'attributes' => $this->attributes()->except('id'),
++        ]);
++    }
++
++    public function fromRevisionOrWorkingCopy($item)
++    {
++        return (new static)
++            ->key($item->key())
++            ->action($item instanceof WorkingCopy ? 'working' : 'revision')
++            ->date($item->date())
++            ->user($item->user()?->id() ?? false)
++            ->message($item->message() ?? '')
++            ->attributes($item->attributes() ?? []);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        return $this;
++    }
++
++    public function save()
++    {
++        $this->model->save();
++
++        RevisionSaved::dispatch($this);
++    }
++
++    public function delete()
++    {
++        $this->model->delete();
++
++        RevisionDeleted::dispatch($this);
++    }
++}
+diff --git a/src/Revisions/RevisionModel.php b/src/Revisions/RevisionModel.php
+new file mode 100644
+index 0000000..5827221
+--- /dev/null
++++ b/src/Revisions/RevisionModel.php
+@@ -0,0 +1,17 @@
++<?php
++
++namespace Statamic\Eloquent\Revisions;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class RevisionModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'revisions';
++
++    protected $casts = [
++        'attributes' => 'json',
++    ];
++}
+diff --git a/src/Revisions/RevisionRepository.php b/src/Revisions/RevisionRepository.php
+new file mode 100644
+index 0000000..1776b3c
+--- /dev/null
++++ b/src/Revisions/RevisionRepository.php
+@@ -0,0 +1,61 @@
++<?php
++
++namespace Statamic\Eloquent\Revisions;
++
++use Illuminate\Support\Collection;
++use Statamic\Contracts\Revisions\Revision as RevisionContract;
++use Statamic\Revisions\RevisionRepository as StacheRepository;
++
++class RevisionRepository extends StacheRepository
++{
++    public function make(): RevisionContract
++    {
++        return app('statamic.eloquent.revisions.model');
++    }
++
++    public function whereKey($key)
++    {
++        return app('statamic.eloquent.revisions.model')::where('key', $key)
++            ->get()
++            ->map(function ($revision) use ($key) {
++                return $this->makeRevisionFromFile($key, $revision);
++            })->keyBy(function ($revision) {
++                return $revision->date()->timestamp;
++            });
++    }
++
++    public function findWorkingCopyByKey($key)
++    {
++        if (! $revision = app('statamic.eloquent.revisions.model')::where(['key' => $key, 'action' => 'working'])->first()) {
++            return null;
++        }
++
++        return $this->makeRevisionFromFile($key, $revision);
++    }
++
++    public function save(RevisionContract $copy)
++    {
++        $revision = (new Revision())
++            ->fromRevisionOrWorkingCopy($copy)
++            ->toModel()
++            ->save();
++    }
++
++    public function delete(RevisionContract $revision)
++    {
++        $revision->model?->delete();
++    }
++
++    protected function makeRevisionFromFile($key, $model)
++    {
++        return (new Revision)
++            ->fromModel($model);
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            RevisionContract::class => Revision::class,
++        ];
++    }
++}
+diff --git a/src/ServiceProvider.php b/src/ServiceProvider.php
+index 07a6730..6efce4f 100644
+--- a/src/ServiceProvider.php
++++ b/src/ServiceProvider.php
+@@ -2,13 +2,34 @@
+
+ namespace Statamic\Eloquent;
+
++use Statamic\Contracts\Assets\AssetContainerRepository as AssetContainerRepositoryContract;
++use Statamic\Contracts\Assets\AssetRepository as AssetRepositoryContract;
+ use Statamic\Contracts\Entries\CollectionRepository as CollectionRepositoryContract;
+ use Statamic\Contracts\Entries\EntryRepository as EntryRepositoryContract;
+-use Statamic\Eloquent\Commands\ImportEntries;
+-use Statamic\Eloquent\Entries\CollectionRepository;
+-use Statamic\Eloquent\Entries\EntryModel;
++use Statamic\Contracts\Forms\FormRepository as FormRepositoryContract;
++use Statamic\Contracts\Globals\GlobalRepository as GlobalRepositoryContract;
++use Statamic\Contracts\Revisions\RevisionRepository as RevisionRepositoryContract;
++use Statamic\Contracts\Structures\CollectionTreeRepository as CollectionTreeRepositoryContract;
++use Statamic\Contracts\Structures\NavigationRepository as NavigationRepositoryContract;
++use Statamic\Contracts\Structures\NavTreeRepository as NavTreeRepositoryContract;
++use Statamic\Contracts\Taxonomies\TaxonomyRepository as TaxonomyRepositoryContract;
++use Statamic\Contracts\Taxonomies\TermRepository as TermRepositoryContract;
++use Statamic\Eloquent\Assets\AssetContainerRepository;
++use Statamic\Eloquent\Assets\AssetRepository;
++use Statamic\Eloquent\Collections\CollectionRepository;
++use Statamic\Eloquent\Commands;
+ use Statamic\Eloquent\Entries\EntryQueryBuilder;
+ use Statamic\Eloquent\Entries\EntryRepository;
++use Statamic\Eloquent\Forms\FormRepository;
++use Statamic\Eloquent\Globals\GlobalRepository;
++use Statamic\Eloquent\Globals\Variables;
++use Statamic\Eloquent\Revisions\RevisionRepository;
++use Statamic\Eloquent\Structures\CollectionTreeRepository;
++use Statamic\Eloquent\Structures\NavigationRepository;
++use Statamic\Eloquent\Structures\NavTreeRepository;
++use Statamic\Eloquent\Taxonomies\TaxonomyRepository;
++use Statamic\Eloquent\Taxonomies\TermQueryBuilder;
++use Statamic\Eloquent\Taxonomies\TermRepository;
+ use Statamic\Providers\AddonServiceProvider;
+ use Statamic\Statamic;
+
+@@ -16,48 +37,233 @@ class ServiceProvider extends AddonServiceProvider
+ {
+     protected $config = false;
+
+-    protected $updateScripts = [
+-        \Statamic\Eloquent\Updates\MoveConfig::class,
+-    ];
+-
+     public function boot()
+     {
+         parent::boot();
+
+-        $this->mergeConfigFrom($config = __DIR__.'/../config/eloquent-driver.php', 'statamic.eloquent-driver');
++        $this->mergeConfigFrom($config = __DIR__.'/../config/eloquent-driver.php', 'statamic-eloquent-driver');
++
++        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
+         if (! $this->app->runningInConsole()) {
+             return;
+         }
+
+-        $this->publishes([
+-            $config => config_path('statamic/eloquent-driver.php'),
+-        ], 'statamic-eloquent-config');
++        $this->publishes([$config => config_path('statamic/eloquent-driver.php')], 'statamic-eloquent-config');
+
+         $this->publishes([
+-            __DIR__.'/../database/migrations/create_entries_table.php' => $this->migrationsPath('create_entries_table'),
++            __DIR__.'/../database/publish/create_entries_table.php' => $this->migrationsPath('create_entries_table'),
+         ], 'statamic-eloquent-entries-table');
+
+         $this->publishes([
+-            __DIR__.'/../database/migrations/create_entries_table_with_string_ids.php' => $this->migrationsPath('create_entries_table_with_string_ids'),
++            __DIR__.'/../database/publish/create_entries_table_with_string_ids.php' => $this->migrationsPath('create_entries_table_with_string_ids'),
+         ], 'statamic-eloquent-entries-table-with-string-ids');
+
+-        $this->commands([ImportEntries::class]);
++        $this->commands([
++            Commands\ImportAssets::class,
++            Commands\ImportBlueprints::class,
++            Commands\ImportCollections::class,
++            Commands\ImportEntries::class,
++            Commands\ImportForms::class,
++            Commands\ImportGlobals::class,
++            Commands\ImportNavs::class,
++            Commands\ImportTaxonomies::class,
++        ]);
+     }
+
+     public function register()
+     {
+-        Statamic::repository(EntryRepositoryContract::class, EntryRepository::class);
++        $this->registerAssets();
++        $this->registerBlueprints();
++        $this->registerCollections();
++        $this->registerEntries();
++        $this->registerForms();
++        $this->registerGlobals();
++        $this->registerRevisions();
++        $this->registerStructures();
++        $this->registerTaxonomies();
++    }
++
++    private function registerAssets()
++    {
++        if (config('statamic.eloquent-driver.assets.driver', 'file') != 'eloquent') {
++            return;
++        }
++
++        Statamic::repository(AssetContainerRepositoryContract::class, AssetContainerRepository::class);
++        Statamic::repository(AssetRepositoryContract::class, AssetRepository::class);
++
++        $this->app->bind('statamic.eloquent.assets.container-model', function () {
++            return config('statamic.eloquent-driver.assets.container-model');
++        });
++
++        $this->app->bind('statamic.eloquent.assets.model', function () {
++            return config('statamic.eloquent-driver.assets.model');
++        });
++    }
++
++    private function registerBlueprints()
++    {
++        if (config('statamic.eloquent-driver.blueprints.driver', 'file') != 'eloquent') {
++           return;
++        }
++
++        $this->app->singleton(
++            'Statamic\Fields\BlueprintRepository',
++            'Statamic\Eloquent\Fields\BlueprintRepository'
++        );
++
++        $this->app->singleton(
++            'Statamic\Fields\FieldsetRepository',
++            'Statamic\Eloquent\Fields\FieldsetRepository'
++        );
++
++        $this->app->bind('statamic.eloquent.blueprints.blueprint-model', function () {
++            return config('statamic.eloquent-driver.blueprints.blueprint-model');
++        });
++
++        $this->app->bind('statamic.eloquent.blueprints.fieldsets-model', function () {
++            return config('statamic.eloquent-driver.blueprints.fieldsets-model');
++        });
++    }
++
++    private function registerCollections()
++    {
++        if (config('statamic.eloquent-driver.collections.driver', 'file') != 'eloquent') {
++            return;
++        }
++
+         Statamic::repository(CollectionRepositoryContract::class, CollectionRepository::class);
+
++        $this->app->bind('statamic.eloquent.collections.model', function () {
++            return config('statamic.eloquent-driver.collections.model');
++        });
++
++        Statamic::repository(CollectionTreeRepositoryContract::class, CollectionTreeRepository::class);
++
++        $this->app->bind('statamic.eloquent.collections.tree', function () {
++            return config('statamic.eloquent-driver.collections.tree');
++        });
++
++        $this->app->bind('statamic.eloquent.collections.tree-model', function () {
++            return config('statamic.eloquent-driver.collections.tree-model');
++        });
++    }
++
++    private function registerEntries()
++    {
++        if (config('statamic.eloquent-driver.entries.driver', 'file') != 'eloquent') {
++            return;
++        }
++
++        $this->app->bind('statamic.eloquent.entries.entry', function () {
++            return config('statamic.eloquent-driver.entries.entry');
++        });
++
++        $this->app->bind('statamic.eloquent.entries.model', function () {
++            return config('statamic.eloquent-driver.entries.model');
++        });
++
++        Statamic::repository(EntryRepositoryContract::class, EntryRepository::class);
++
+         $this->app->bind(EntryQueryBuilder::class, function ($app) {
+             return new EntryQueryBuilder(
+                 $app['statamic.eloquent.entries.model']::query()
+             );
+         });
++    }
++
++    private function registerForms()
++    {
++        if (config('statamic.eloquent-driver.forms.driver', 'file') != 'eloquent') {
++            return;
++        }
++
++        Statamic::repository(FormRepositoryContract::class, FormRepository::class);
++
++        $this->app->bind('statamic.eloquent.forms.model', function () {
++            return config('statamic.eloquent-driver.forms.model');
++        });
++
++        $this->app->bind('statamic.eloquent.forms.submissions-model', function () {
++            return config('statamic.eloquent-driver.forms.submissions-model');
++        });
++    }
++
++    private function registerGlobals()
++    {
++        if (config('statamic.eloquent-driver.global-sets.driver', 'file') != 'eloquent') {
++            return;
++        }
++
++        Statamic::repository(GlobalRepositoryContract::class, GlobalRepository::class);
++
++        $this->app->bind('statamic.eloquent.global-sets.model', function () {
++            return config('statamic.eloquent-driver.global-sets.model');
++        });
++
++        $this->app->bind('statamic.eloquent.global-sets.variables-model', function () {
++            return config('statamic.eloquent-driver.global-sets.variables-model');
++        });
++    }
++
++    private function registerRevisions()
++    {
++        // if (config('statamic.eloquent-driver.revisions.driver', 'file') != 'eloquent') {
++        //     return;
++        // }
++
++        Statamic::repository(RevisionRepositoryContract::class, RevisionRepository::class);
++
++        $this->app->bind('statamic.eloquent.revisions.model', function () {
++            return config('statamic.eloquent-driver.revisions.model');
++        });
++    }
++
++    private function registerStructures()
++    {
++        if (config('statamic.eloquent-driver.navigations.driver', 'file') != 'eloquent') {
++            return;
++        }
++
++        Statamic::repository(NavigationRepositoryContract::class, NavigationRepository::class);
++
++        $this->app->bind('statamic.eloquent.navigations.model', function () {
++            return config('statamic.eloquent-driver.navigations.model');
++        });
++
++        Statamic::repository(NavTreeRepositoryContract::class, NavTreeRepository::class);
++
++        $this->app->bind('statamic.eloquent.navigations.tree', function () {
++            return config('statamic.eloquent-driver.navigations.tree');
++        });
++
++        $this->app->bind('statamic.eloquent.navigations.tree-model', function () {
++            return config('statamic.eloquent-driver.navigations.tree-model');
++        });
++    }
++
++    public function registerTaxonomies()
++    {
++        if (config('statamic.eloquent-driver.taxonomies.driver', 'file') != 'eloquent') {
++            return;
++        }
++
++        Statamic::repository(TaxonomyRepositoryContract::class, TaxonomyRepository::class);
++        Statamic::repository(TermRepositoryContract::class, TermRepository::class);
++
++        $this->app->bind(TermQueryBuilder::class, function ($app) {
++            return new TermQueryBuilder(
++                $app['statamic.eloquent.taxonomies.term-model']::query()
++            );
++        });
+
+-        $this->app->bind('statamic.eloquent.entries.model', function () {
+-            return config('statamic.eloquent-driver.entries.model');
++        $this->app->bind('statamic.eloquent.taxonomies.term-model', function () {
++            return config('statamic.eloquent-driver.taxonomies.term-model');
++        });
++
++        $this->app->bind('statamic.eloquent.taxonomies.model', function () {
++            return config('statamic.eloquent-driver.taxonomies.model');
+         });
+     }
+
+diff --git a/src/Structures/CollectionStructure.php b/src/Structures/CollectionStructure.php
+new file mode 100644
+index 0000000..53a82ee
+--- /dev/null
++++ b/src/Structures/CollectionStructure.php
+@@ -0,0 +1,13 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Structures\CollectionStructure as StatamicCollectionStructure;
++
++class CollectionStructure extends StatamicCollectionStructure
++{
++    public function newTreeInstance()
++    {
++        return new CollectionTree;
++    }
++}
+diff --git a/src/Structures/CollectionTree.php b/src/Structures/CollectionTree.php
+new file mode 100644
+index 0000000..74622a6
+--- /dev/null
++++ b/src/Structures/CollectionTree.php
+@@ -0,0 +1,47 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Eloquent\Structures\TreeModel as Model;
++use Statamic\Structures\CollectionTree as FileEntry;
++use Statamic\Structures\CollectionTreeDiff;
++
++class CollectionTree extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->tree($model->tree)
++            ->handle($model->handle)
++            ->locale($model->locale)
++            ->initialPath($model->initialPath)
++            ->syncOriginal()
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.collections.tree-model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'handle' => $this->handle(),
++            'initialPath' => $this->initialPath(),
++            'locale' => $this->locale(),
++            'tree' => $this->tree(),
++            'type' => 'collection',
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        return $this;
++    }
++}
+diff --git a/src/Structures/CollectionTreeRepository.php b/src/Structures/CollectionTreeRepository.php
+new file mode 100644
+index 0000000..23c92a0
+--- /dev/null
++++ b/src/Structures/CollectionTreeRepository.php
+@@ -0,0 +1,30 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Contracts\Structures\Tree as TreeContract;
++use Statamic\Stache\Repositories\CollectionTreeRepository as StacheRepository;
++
++class CollectionTreeRepository extends StacheRepository
++{
++    public function find(string $handle, string $site): ?TreeContract
++    {
++        $model = app('statamic.eloquent.collections.tree-model')::whereHandle($handle)
++            ->where('locale', $site)
++            ->whereType('collection')
++            ->first();
++
++        return $model
++            ? app(app('statamic.eloquent.collections.tree'))->fromModel($model)
++            : null;
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++}
+diff --git a/src/Structures/Nav.php b/src/Structures/Nav.php
+new file mode 100644
+index 0000000..bfadccc
+--- /dev/null
++++ b/src/Structures/Nav.php
+@@ -0,0 +1,55 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Eloquent\Structures\NavModel as Model;
++use Statamic\Structures\Nav as FileEntry;
++
++class Nav extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->handle($model->handle)
++            ->title($model->title)
++            ->collections($model->collections)
++            ->maxDepth($model->maxDepth)
++            ->expectsRoot($model->expectsRoot)
++            ->initialPath($model->initialPath)
++            ->model($model);
++    }
++
++    public function newTreeInstance()
++    {
++        return app(app('statamic.eloquent.navigations.tree'));
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.navigations.model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'handle' => $this->handle(),
++            'title' => $this->title(),
++            'collections' => $this->collections()->map->handle(),
++            'maxDepth' => $this->maxDepth(),
++            'expectsRoot' => $this->expectsRoot(),
++            'initialPath' => $this->initialPath(),
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        $this->id($model->id);
++
++        return $this;
++    }
++}
+diff --git a/src/Structures/NavModel.php b/src/Structures/NavModel.php
+new file mode 100644
+index 0000000..5826814
+--- /dev/null
++++ b/src/Structures/NavModel.php
+@@ -0,0 +1,18 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Eloquent\Database\BaseModel;
++
++class NavModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'navigations';
++
++    protected $casts = [
++        'collections' => 'json',
++        'expectsRoot' => 'boolean',
++        'maxDepth' => 'integer',
++    ];
++}
+diff --git a/src/Structures/NavTree.php b/src/Structures/NavTree.php
+new file mode 100644
+index 0000000..0faa0c8
+--- /dev/null
++++ b/src/Structures/NavTree.php
+@@ -0,0 +1,45 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Eloquent\Structures\TreeModel as Model;
++use Statamic\Structures\NavTree as FileEntry;
++
++class NavTree extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->tree($model->tree)
++            ->handle($model->handle)
++            ->locale($model->locale)
++            ->initialPath($model->initialPath)
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.navigations.tree-model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'handle' => $this->handle(),
++            'initialPath' => $this->initialPath(),
++            'locale' => $this->locale(),
++            'tree' => $this->tree(),
++            'type' => 'navigation',
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        return $this;
++    }
++}
+diff --git a/src/Structures/NavTreeRepository.php b/src/Structures/NavTreeRepository.php
+new file mode 100644
+index 0000000..3a6a3e8
+--- /dev/null
++++ b/src/Structures/NavTreeRepository.php
+@@ -0,0 +1,35 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Contracts\Structures\Tree as TreeContract;
++use Statamic\Stache\Repositories\NavTreeRepository as StacheRepository;
++
++class NavTreeRepository extends StacheRepository
++{
++    public function find(string $handle, string $site): ?TreeContract
++    {
++        $model = app('statamic.eloquent.navigations.tree-model')::whereHandle($handle)
++            ->whereType('navigation')
++            ->where('locale', $site)
++            ->first();
++
++        return $model
++            ? app(app('statamic.eloquent.navigations.tree'))->fromModel($model)
++            : null;
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++
++    public function delete($entry)
++    {
++        $entry->model()->delete();
++    }
++}
+diff --git a/src/Structures/NavigationRepository.php b/src/Structures/NavigationRepository.php
+new file mode 100644
+index 0000000..fd5fd02
+--- /dev/null
++++ b/src/Structures/NavigationRepository.php
+@@ -0,0 +1,52 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Illuminate\Support\Collection;
++use Statamic\Contracts\Structures\Nav as NavContract;
++use Statamic\Stache\Repositories\NavigationRepository as StacheRepository;
++
++class NavigationRepository extends StacheRepository
++{
++    protected function transform($items, $columns = [])
++    {
++        return Collection::make($items)->map(function ($model) {
++            return Nav::fromModel($model);
++        });
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            NavContract::class => Nav::class,
++        ];
++    }
++
++    public function all(): Collection
++    {
++        return $this->transform(NavModel::all());
++    }
++
++    public function findByHandle($handle): ?NavContract
++    {
++        $model = NavModel::whereHandle($handle)->first();
++
++        return $model
++            ? app(NavContract::class)->fromModel($model)
++            : null;
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++
++    public function delete($entry)
++    {
++        $entry->model()->delete();
++    }
++}
+diff --git a/src/Structures/TreeModel.php b/src/Structures/TreeModel.php
+new file mode 100644
+index 0000000..5d58ebf
+--- /dev/null
++++ b/src/Structures/TreeModel.php
+@@ -0,0 +1,16 @@
++<?php
++
++namespace Statamic\Eloquent\Structures;
++
++use Statamic\Eloquent\Database\BaseModel;
++
++class TreeModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'trees';
++
++    protected $casts = [
++        'tree' => 'json',
++    ];
++}
+diff --git a/src/Taxonomies/Taxonomy.php b/src/Taxonomies/Taxonomy.php
+new file mode 100644
+index 0000000..1d73cff
+--- /dev/null
++++ b/src/Taxonomies/Taxonomy.php
+@@ -0,0 +1,48 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Statamic\Eloquent\Taxonomies\TaxonomyModel as Model;
++use Statamic\Taxonomies\Taxonomy  as FileEntry;
++
++class Taxonomy extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        return (new static)
++            ->handle($model->handle)
++            ->title($model->title)
++            ->sites($model->sites)
++            ->revisionsEnabled($model->settings['revisions'] ?? false)
++            ->model($model);
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.taxonomies.model');
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'handle' => $this->handle(),
++            'title' => $this->title(),
++            'sites' => $this->sites(),
++            'settings' => [
++                'revisions' => $this->revisionsEnabled(),
++            ],
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        $this->id($model->id);
++
++        return $this;
++    }
++}
+diff --git a/src/Taxonomies/TaxonomyModel.php b/src/Taxonomies/TaxonomyModel.php
+new file mode 100644
+index 0000000..1983c75
+--- /dev/null
++++ b/src/Taxonomies/TaxonomyModel.php
+@@ -0,0 +1,23 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class TaxonomyModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'taxonomies';
++
++    protected $casts = [
++        'settings' => 'json',
++        'sites' => 'json',
++    ];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('settings'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Taxonomies/TaxonomyRepository.php b/src/Taxonomies/TaxonomyRepository.php
+new file mode 100644
+index 0000000..b6f7d0d
+--- /dev/null
++++ b/src/Taxonomies/TaxonomyRepository.php
+@@ -0,0 +1,52 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Illuminate\Support\Collection;
++use Statamic\Contracts\Taxonomies\Taxonomy as TaxonomyContract;
++use Statamic\Stache\Repositories\TaxonomyRepository as StacheRepository;
++
++class TaxonomyRepository extends StacheRepository
++{
++    protected function transform($items, $columns = [])
++    {
++        return Collection::make($items)->map(function ($model) {
++            return app(TaxonomyContract::class)::fromModel($model);
++        });
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            TaxonomyContract::class => Taxonomy::class,
++        ];
++    }
++
++    public function all(): Collection
++    {
++        return $this->transform(app('statamic.eloquent.taxonomies.model')::all());
++    }
++
++    public function findByHandle($handle): ?TaxonomyContract
++    {
++        $taxonomyModel = app('statamic.eloquent.taxonomies.model')::whereHandle($handle)->first();
++
++        return $taxonomyModel
++            ? app(TaxonomyContract::class)->fromModel($taxonomyModel)
++            : null;
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++
++    public function delete($entry)
++    {
++        $entry->model()->delete();
++    }
++}
+diff --git a/src/Taxonomies/Term.php b/src/Taxonomies/Term.php
+new file mode 100644
+index 0000000..9a11007
+--- /dev/null
++++ b/src/Taxonomies/Term.php
+@@ -0,0 +1,71 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Statamic\Eloquent\Taxonomies\TermModel as Model;
++use Statamic\Taxonomies\Term as FileEntry;
++
++class Term extends FileEntry
++{
++    protected $model;
++
++    public static function fromModel(Model $model)
++    {
++        /** @var Term $term */
++        $term = (new static)
++            ->slug($model->slug)
++            ->taxonomy($model->taxonomy)
++            ->data($model->data)
++            ->model($model)
++            ->blueprint($model->data['blueprint'] ?? null);
++
++        collect($model->data['localizations'] ?? [])->each(function ($data, $locale) use ($term) {
++            $term->dataForLocale($locale, $data);
++        });
++
++        return $term;
++    }
++
++    public function toModel()
++    {
++        $class = app('statamic.eloquent.taxonomies.term-model');
++
++        $data = $this->data();
++
++        if ($this->blueprint && $this->taxonomy()->termBlueprints()->count() > 1) {
++            $data['blueprint'] = $this->blueprint;
++        }
++
++        $data['localizations'] = $this->localizations()->keys()->reduce(function ($localizations, $locale) {
++            $localizations[$locale] = $this->dataForLocale($locale)->toArray();
++
++            return $localizations;
++        }, []);
++
++        return $class::findOrNew($this->model?->id)->fill([
++            'site' => $this->locale(),
++            'slug' => $this->slug(),
++            'uri' => $this->uri(),
++            'taxonomy' => $this->taxonomy(),
++            'data' => $data,
++        ]);
++    }
++
++    public function model($model = null)
++    {
++        if (func_num_args() === 0) {
++            return $this->model;
++        }
++
++        $this->model = $model;
++
++        $this->id($model->id);
++
++        return $this;
++    }
++
++    public function lastModified()
++    {
++        return $this->model?->updated_at;
++    }
++}
+diff --git a/src/Taxonomies/TermModel.php b/src/Taxonomies/TermModel.php
+new file mode 100644
+index 0000000..aa5d326
+--- /dev/null
++++ b/src/Taxonomies/TermModel.php
+@@ -0,0 +1,22 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Illuminate\Support\Arr;
++use Statamic\Eloquent\Database\BaseModel;
++
++class TermModel extends BaseModel
++{
++    protected $guarded = [];
++
++    protected $table = 'taxonomy_terms';
++
++    protected $casts = [
++        'data' => 'json',
++    ];
++
++    public function getAttribute($key)
++    {
++        return Arr::get($this->getAttributeValue('data'), $key, parent::getAttribute($key));
++    }
++}
+diff --git a/src/Taxonomies/TermQueryBuilder.php b/src/Taxonomies/TermQueryBuilder.php
+new file mode 100644
+index 0000000..7c497c4
+--- /dev/null
++++ b/src/Taxonomies/TermQueryBuilder.php
+@@ -0,0 +1,49 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Statamic\Contracts\Taxonomies\Term as TermContract;
++use Statamic\Facades\Site;
++use Statamic\Query\EloquentQueryBuilder;
++use Statamic\Taxonomies\TermCollection;
++
++class TermQueryBuilder extends EloquentQueryBuilder
++{
++    protected $site = null;
++
++    protected $columns = [
++        'id', 'data', 'site', 'slug', 'uri', 'taxonomy', 'created_at', 'updated_at',
++    ];
++
++    protected function transform($items, $columns = [])
++    {
++        $site = $this->site;
++        if(!$site) {
++            $site = Site::default()->handle();
++        }
++
++        return TermCollection::make($items)->map(function ($model) use($site) {
++            return app(TermContract::class)::fromModel($model)->in($site);
++        });
++    }
++
++    protected function column($column)
++    {
++        if (! in_array($column, $this->columns)) {
++            $column = 'data->'.$column;
++        }
++
++        return $column;
++    }
++
++    public function where($column, $operator = null, $value = null)
++    {
++        if ($column === 'site') {
++            $this->site = $operator;
++
++            return $this;
++        }
++
++        return parent::where($column, $operator, $value);
++    }
++}
+diff --git a/src/Taxonomies/TermRepository.php b/src/Taxonomies/TermRepository.php
+new file mode 100644
+index 0000000..7d2dfc3
+--- /dev/null
++++ b/src/Taxonomies/TermRepository.php
+@@ -0,0 +1,50 @@
++<?php
++
++namespace Statamic\Eloquent\Taxonomies;
++
++use Statamic\Contracts\Taxonomies\Term as TermContract;
++use Statamic\Stache\Repositories\TermRepository as StacheRepository;
++use Statamic\Taxonomies\LocalizedTerm;
++
++class TermRepository extends StacheRepository
++{
++    public function query()
++    {
++        $this->ensureAssociations();
++
++        return app(TermQueryBuilder::class);
++    }
++
++    public function find($id): ?LocalizedTerm
++    {
++        [$handle, $slug] = explode('::', $id);
++
++        $term = $this->query()
++            ->where('taxonomy', $handle)
++            ->where('slug', $slug);
++        $term = $term->first();
++
++        return $term;
++    }
++
++    public function save($entry)
++    {
++        $model = $entry->toModel();
++
++        $model->save();
++
++        $entry->model($model->fresh());
++    }
++
++    public function delete($entry)
++    {
++        $entry->model()->delete();
++    }
++
++    public static function bindings(): array
++    {
++        return [
++            TermContract::class => Term::class,
++        ];
++    }
++}
+diff --git a/tests/Entries/EntryTest.php b/tests/Entries/EntryTest.php
+new file mode 100644
+index 0000000..747cf41
+--- /dev/null
++++ b/tests/Entries/EntryTest.php
+@@ -0,0 +1,42 @@
++<?php
++
++namespace Tests\Entries;
++
++use PHPUnit\Framework\TestCase;
++use Statamic\Eloquent\Entries\Entry;
++use Statamic\Eloquent\Entries\EntryModel;
++
++class EntryTest extends TestCase
++{
++    /** @test */
++    public function it_loads_from_entry_model()
++    {
++        $model = new EntryModel([
++            'slug' => 'the-slug',
++            'data' => [
++                'foo' => 'bar'
++            ]
++        ]);
++
++        $entry = (new Entry)->fromModel($model);
++
++        $this->assertEquals('the-slug', $entry->slug());
++        $this->assertEquals('bar', $entry->data()->get('foo'));
++        $this->assertEquals(['foo' => 'bar'], $entry->data()->toArray());
++    }
++
++    /** @test */
++    public function it_saves_to_entry_model()
++    {
++        $model = new EntryModel([
++            'slug' => 'the-slug',
++            'data' => [
++                'foo' => 'bar'
++            ]
++        ]);
++
++        $entry = (new Entry)->fromModel($model);
++
++        $this->assertEquals($model->toArray(), $entry->toModel()->toArray());
++    }
++}

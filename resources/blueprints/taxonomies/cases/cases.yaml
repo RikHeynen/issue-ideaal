@@ -1,0 +1,41 @@
+sections:
+  general:
+    display: Algemeen
+    fields:
+      -
+        handle: title
+        field:
+          type: text
+          required: true
+          localizable: true
+          validate:
+            - required
+          display: Titel
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          input_type: text
+          antlers: false
+      -
+        handle: slug
+        field:
+          type: slug
+          required: true
+          localizable: true
+          validate:
+            - required
+          display: Slug
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          generate: true
+  SEO:
+    display: SEO
+    fields:
+      -
+        handle: seo
+        field:
+          type: seo_pro
+          listable: false
+          display: SEO
+title: Cases

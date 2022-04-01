@@ -1,0 +1,29 @@
+name: Deploy acceptance
+
+on:
+  push:
+    branches:
+      - acceptance
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Add ssh access key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          ACCEPTANCE_PRIVATE_KEY: ${{ secrets.ACCEPTANCE_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan server.appartdev.nl >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "$ACCEPTANCE_PRIVATE_KEY"
+      - name: deploy
+        uses: deployphp/action@v1
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        with:
+          private-key: ${{ secrets.ACCEPTANCE_PRIVATE_KEY }}
+          dep: deploy acceptance

@@ -1,0 +1,13 @@
+title: 'Klein blok'
+fields:
+  -
+    handle: small_block
+    field:
+      default: false
+      display: 'Klein blok'
+      type: toggle
+      icon: toggle
+      listable: hidden
+      instructions_position: above
+      read_only: false
+      localizable: true

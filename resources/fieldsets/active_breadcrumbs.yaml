@@ -1,0 +1,13 @@
+title: 'Breadcrumbs activeren'
+fields:
+  -
+    handle: active_breadcrumbs
+    field:
+      default: false
+      display: 'Breadcrumbs activeren'
+      type: toggle
+      icon: toggle
+      localizable: true
+      listable: hidden
+      instructions_position: above
+      read_only: false

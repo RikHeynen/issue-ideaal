@@ -1,0 +1,560 @@
+title: Blokken
+fields:
+  -
+    handle: blocks
+    field:
+      collapse: false
+      sets:
+        header:
+          display: Header
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: klein_blok
+              field: small_block.small_block
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: knop
+              field: button.button
+            -
+              handle: afbeelding
+              field: image.image
+            -
+              handle: video_url
+              field: video_url.video_url
+        news:
+          display: Nieuws
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: klein_blok
+              field: small_block.small_block
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: knop
+              field: button.button
+        newsletter:
+          display: Nieuwsbrief
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+        gallery:
+          display: Galerij
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: images
+              field:
+                mode: list
+                container: images
+                restrict: false
+                allow_uploads: false
+                show_filename: true
+                max_files: 4
+                display: Afbeeldingen
+                type: assets
+                icon: assets
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: knop
+              field: button.button
+        asset_text:
+          display: 'Asset + tekst'
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: block_variant
+              field:
+                options:
+                  variant_1: 'Variant 1'
+                  variant_2: 'Variant 2'
+                multiple: false
+                clearable: false
+                searchable: true
+                taggable: false
+                push_tags: false
+                cast_booleans: false
+                display: 'Blok variant'
+                type: select
+                icon: select
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: knop
+              field: button.button
+            -
+              handle: afbeelding
+              field: image.image
+            -
+              handle: video_url
+              field: video_url.video_url
+        contact:
+          display: Contact
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: form_submit_text
+              field:
+                input_type: text
+                antlers: false
+                display: 'Formulier verzendknop tekst'
+                type: text
+                icon: text
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: contact_title
+              field:
+                input_type: text
+                antlers: false
+                display: 'Contact titel'
+                type: text
+                icon: text
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: contact_details
+              field:
+                always_show_set_button: false
+                buttons:
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+                save_html: false
+                toolbar_mode: fixed
+                link_noopener: true
+                link_noreferrer: true
+                target_blank: true
+                reading_time: false
+                fullscreen: false
+                allow_source: false
+                enable_input_rules: false
+                enable_paste_rules: false
+                antlers: false
+                display: 'Contact details'
+                type: bard
+                icon: bard
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: route_title
+              field:
+                input_type: text
+                antlers: false
+                display: 'Routebeschrijving titel'
+                type: text
+                icon: text
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: route_image
+              field: image.image
+              config:
+                display: 'Route foto'
+            -
+              handle: form_field
+              field:
+                max_items: 1
+                display: 'Form veld'
+                type: form
+                icon: form
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        intro:
+          display: Intro
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: breadcrumbs_activeren
+              field: active_breadcrumbs.active_breadcrumbs
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+        benefits:
+          display: Voordelen
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: benefits
+              field:
+                max_items: 6
+                mode: default
+                create: false
+                collections:
+                  - benefits
+                display: Voordelen
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        references:
+          display: Referenties
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: references
+              field:
+                mode: default
+                create: false
+                collections:
+                  - references
+                display: Referenties
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        pages:
+          display: 'Pagina''s'
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: pages
+              field:
+                max_items: 2
+                mode: default
+                create: false
+                collections:
+                  - pages
+                display: 'Pagina''s'
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        cases:
+          display: Cases
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: klein_blok
+              field: small_block.small_block
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: cases
+              field:
+                mode: default
+                create: false
+                collections:
+                  - cases
+                display: Cases
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: knop
+              field: button.button
+        products:
+          display: Producten
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: products
+              field:
+                mode: default
+                create: false
+                collections:
+                  - products
+                display: Producten
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        tekst:
+          display: Tekst
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: breadcrumbs_activeren
+              field: active_breadcrumbs.active_breadcrumbs
+            -
+              handle: text_block
+              field:
+                always_show_set_button: false
+                sets:
+                  images:
+                    display: Afbeeldingen
+                    fields:
+                      -
+                        handle: images
+                        field:
+                          mode: list
+                          container: images
+                          folder: /
+                          restrict: false
+                          allow_uploads: false
+                          show_filename: true
+                          display: Afbeeldingen
+                          type: assets
+                          icon: assets
+                          listable: hidden
+                          instructions_position: above
+                          read_only: false
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+                container: images
+                save_html: false
+                toolbar_mode: fixed
+                link_noopener: true
+                link_noreferrer: true
+                target_blank: true
+                link_collections:
+                  - pages
+                  - products
+                  - news
+                  - cases
+                reading_time: false
+                fullscreen: false
+                allow_source: false
+                enable_input_rules: false
+                enable_paste_rules: false
+                antlers: false
+                display: 'Tekst blok'
+                type: bard
+                icon: bard
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        vacancies:
+          display: Vacatures
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: vacancies
+              field:
+                mode: default
+                create: false
+                collections:
+                  - vacatures
+                display: Vacatures
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+        team:
+          display: Team
+          fields:
+            -
+              handle: visual
+              field: visual.visual
+            -
+              handle: tekst
+              field: text.text
+              config:
+                buttons:
+                  - h2
+                  - h3
+                  - bold
+                  - italic
+                  - unorderedlist
+                  - orderedlist
+                  - removeformat
+                  - anchor
+            -
+              handle: team
+              field:
+                mode: default
+                create: false
+                collections:
+                  - team
+                display: Team
+                type: entries
+                icon: entries
+                listable: hidden
+                instructions_position: above
+                read_only: false
+      display: Blokken
+      type: replicator
+      icon: replicator
+      listable: hidden
+      instructions_position: above
+      read_only: false
+      localizable: true

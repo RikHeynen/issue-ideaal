@@ -1,0 +1,39 @@
+title: Tekst
+fields:
+  -
+    handle: text
+    field:
+      always_show_set_button: false
+      buttons:
+        - h2
+        - h3
+        - bold
+        - italic
+        - unorderedlist
+        - orderedlist
+        - removeformat
+        - anchor
+      save_html: false
+      toolbar_mode: fixed
+      link_noopener: true
+      link_noreferrer: true
+      target_blank: true
+      reading_time: false
+      fullscreen: false
+      allow_source: false
+      enable_input_rules: false
+      enable_paste_rules: false
+      antlers: false
+      display: Tekst
+      type: bard
+      icon: bard
+      listable: hidden
+      instructions_position: above
+      read_only: false
+      localizable: true
+      link_collections:
+        - vacancies
+        - pages
+        - products
+        - news
+        - cases

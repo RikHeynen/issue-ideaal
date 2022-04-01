@@ -1,0 +1,233 @@
+sections:
+  logos:
+    display: 'Logo''s'
+    fields:
+      -
+        handle: logo
+        field: image.image
+        config:
+          display: Logo
+          folder: logo
+  social_media:
+    display: 'Social media'
+    fields:
+      -
+        handle: social_media_grid
+        field:
+          fields:
+            -
+              handle: font_awesome
+              field:
+                styles:
+                  - brands
+                display: 'Font Awesome icoon'
+                type: font_awesome
+                icon: select
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: social_media_name
+              field:
+                input_type: text
+                antlers: false
+                display: 'Social media naam'
+                type: text
+                icon: text
+                instructions: 'Vul hier de naam van het social media platform in'
+                listable: hidden
+                instructions_position: above
+                read_only: false
+            -
+              handle: social_media_url
+              field:
+                types:
+                  - url
+                newWindow: false
+                text: false
+                aria: false
+                append: false
+                display: 'Social media URL'
+                type: link_it
+                icon: external-link
+                instructions: 'Vul hier de URL van het social media platform in'
+                listable: hidden
+                instructions_position: above
+                read_only: false
+          mode: table
+          reorderable: true
+          display: 'Social media grid'
+          type: grid
+          icon: grid
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+  other:
+    display: Diverse
+    fields:
+      -
+        handle: company_name
+        field:
+          input_type: text
+          antlers: false
+          display: Bedrijfsnaam
+          type: text
+          icon: text
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: sitemap_title
+        field:
+          input_type: text
+          antlers: false
+          display: 'Sitemap titel'
+          type: text
+          icon: text
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: contact_title
+        field:
+          input_type: text
+          antlers: false
+          display: 'Contact titel'
+          type: text
+          icon: text
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: contact_details
+        field:
+          always_show_set_button: false
+          buttons:
+            - bold
+            - italic
+            - unorderedlist
+            - orderedlist
+            - removeformat
+            - anchor
+          container: docs
+          save_html: false
+          toolbar_mode: fixed
+          link_noopener: true
+          link_noreferrer: true
+          target_blank: true
+          link_collections:
+            - vacancies
+            - pages
+          reading_time: false
+          fullscreen: false
+          allow_source: false
+          enable_input_rules: false
+          enable_paste_rules: false
+          antlers: false
+          display: 'Contact details'
+          type: bard
+          icon: bard
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: company_title
+        field:
+          input_type: text
+          antlers: false
+          display: 'Bedrijf titel'
+          type: text
+          icon: text
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: company_details
+        field:
+          always_show_set_button: false
+          buttons:
+            - bold
+            - italic
+            - unorderedlist
+            - orderedlist
+            - removeformat
+            - anchor
+          container: docs
+          save_html: false
+          toolbar_mode: fixed
+          link_noopener: true
+          link_noreferrer: true
+          target_blank: true
+          link_collections:
+            - vacancies
+            - pages
+            - products
+          reading_time: false
+          fullscreen: false
+          allow_source: false
+          enable_input_rules: false
+          enable_paste_rules: false
+          antlers: false
+          display: 'Bedrijf details'
+          type: bard
+          icon: bard
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: social_media_title
+        field:
+          input_type: text
+          antlers: false
+          display: 'Social media titel'
+          type: text
+          icon: text
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: privacy_policy
+        field:
+          types:
+            - asset
+          newWindow: true
+          text: true
+          aria: false
+          append: false
+          containers:
+            - docs
+          display: Privacybeleid
+          type: link_it
+          icon: external-link
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+  404_page:
+    display: '404 pagina'
+    fields:
+      -
+        handle: tekst
+        field: text.text
+        config:
+          buttons:
+            - h1
+            - h2
+            - h3
+            - bold
+            - italic
+            - unorderedlist
+            - orderedlist
+            - removeformat
+            - anchor
+      -
+        handle: knop
+        field: button.button

@@ -1,0 +1,13 @@
+title: Visual
+fields:
+  -
+    handle: visual
+    field:
+      default: false
+      display: Visual
+      type: toggle
+      icon: toggle
+      listable: hidden
+      instructions_position: above
+      read_only: false
+      localizable: true

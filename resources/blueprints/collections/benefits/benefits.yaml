@@ -1,0 +1,70 @@
+sections:
+  general:
+    display: Algemeen
+    fields:
+      -
+        handle: title
+        field:
+          type: text
+          required: true
+          localizable: true
+          validate:
+            - required
+          display: Titel
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          input_type: text
+          antlers: false
+  featured:
+    display: Uitgelicht
+    fields:
+      -
+        handle: featured_img
+        field: image.image
+        config:
+          display: 'Uitgelichte afbeelding'
+      -
+        handle: featured_tekst
+        field:
+          always_show_set_button: false
+          buttons:
+            - h2
+            - h3
+            - bold
+            - italic
+            - removeformat
+          save_html: false
+          toolbar_mode: fixed
+          link_noopener: false
+          link_noreferrer: false
+          target_blank: false
+          reading_time: false
+          fullscreen: false
+          allow_source: false
+          enable_input_rules: false
+          enable_paste_rules: false
+          antlers: false
+          display: 'Uitgelichte tekst'
+          type: bard
+          icon: bard
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+  sidebar:
+    fields:
+      -
+        handle: slug
+        field:
+          type: slug
+          localizable: true
+  SEO:
+    fields:
+      -
+        handle: seo
+        field:
+          type: seo_pro
+          listable: false
+          display: SEO
+title: Voordelen

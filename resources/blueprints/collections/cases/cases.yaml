@@ -1,0 +1,51 @@
+sections:
+  general:
+    display: Algemeen
+    fields:
+      -
+        handle: blokken
+        field: blocks.blocks
+  sidebar:
+    display: Sidebar
+    fields:
+      -
+        handle: slug
+        field:
+          type: slug
+          localizable: true
+          display: Slug
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          generate: true
+      -
+        handle: title
+        field:
+          type: text
+          required: true
+          localizable: true
+          validate:
+            - required
+          display: Titel
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          input_type: text
+          antlers: false
+  featured:
+    display: Uitgelicht
+    fields:
+      -
+        handle: featured_img
+        field: image.image
+  seo:
+    display: SEO
+    fields:
+      -
+        handle: seo
+        field:
+          type: seo_pro
+          listable: false
+          display: SEO
+          localizable: true
+title: Cases

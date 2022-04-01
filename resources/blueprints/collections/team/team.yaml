@@ -1,0 +1,52 @@
+sections:
+  general:
+    display: Algemeen
+    fields:
+      -
+        handle: afbeelding
+        field: image.image
+      -
+        handle: title
+        field:
+          type: text
+          required: true
+          localizable: true
+          validate:
+            - required
+          display: Titel
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          input_type: text
+          antlers: false
+      -
+        handle: function_field
+        field:
+          input_type: text
+          antlers: false
+          display: Functie
+          type: text
+          icon: text
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: knop
+        field: button.button
+  sidebar:
+    fields:
+      -
+        handle: slug
+        field:
+          type: slug
+          localizable: true
+  SEO:
+    fields:
+      -
+        handle: seo
+        field:
+          type: seo_pro
+          listable: false
+          display: SEO
+title: Team

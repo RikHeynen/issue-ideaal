@@ -1,0 +1,15 @@
+title: 'Video URL'
+fields:
+  -
+    handle: video_url
+    field:
+      input_type: text
+      antlers: false
+      display: 'Video URL'
+      type: text
+      icon: text
+      instructions: 'Link naar YouTube of Vimeo video'
+      localizable: true
+      listable: hidden
+      instructions_position: above
+      read_only: false

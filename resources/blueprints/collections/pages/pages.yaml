@@ -1,0 +1,95 @@
+title: Pages
+sections:
+  general:
+    display: Algemeen
+    fields:
+      -
+        handle: blokken
+        field: blocks.blocks
+  sidebar:
+    display: Sidebar
+    fields:
+      -
+        handle: title
+        field:
+          type: text
+          required: true
+          validate:
+            - required
+          localizable: true
+          display: Titel
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          input_type: text
+          antlers: false
+      -
+        handle: slug
+        field:
+          type: slug
+          localizable: true
+          display: Slug
+          instructions_position: above
+          listable: hidden
+          read_only: false
+          generate: true
+  featured:
+    display: Uitgelicht
+    fields:
+      -
+        handle: featured_img
+        field: image.image
+        config:
+          display: 'Uitgelichte afbeelding'
+      -
+        handle: featured_tekst
+        field:
+          always_show_set_button: false
+          buttons:
+            - h2
+            - h3
+            - bold
+            - italic
+            - removeformat
+          save_html: false
+          toolbar_mode: fixed
+          link_noopener: false
+          link_noreferrer: false
+          target_blank: false
+          reading_time: false
+          fullscreen: false
+          allow_source: false
+          enable_input_rules: false
+          enable_paste_rules: false
+          antlers: false
+          display: 'Uitgelichte tekst'
+          type: bard
+          icon: bard
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+      -
+        handle: featured_icon
+        field:
+          styles:
+            - light
+          display: 'Uitgelicht icoon'
+          type: font_awesome
+          icon: select
+          localizable: true
+          listable: hidden
+          instructions_position: above
+          read_only: false
+  seo:
+    display: SEO
+    fields:
+      -
+        handle: seo
+        field:
+          type: seo_pro
+          listable: false
+          display: SEO
+          instructions_position: above
+          read_only: false
+          localizable: true
